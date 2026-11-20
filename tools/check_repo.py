@@ -15,6 +15,7 @@ import json
 import re
 import subprocess
 import sys
+import plistlib
 import tomllib
 from pathlib import Path
 
@@ -45,6 +46,7 @@ REQUIRED_DOCS = [
     "docs/PORTING.md",
     "docs/AGENT_WORKFLOW.md",
     "docs/LINUX.md",
+    "docs/RELEASING.md",
 ]
 
 PLACEHOLDER = re.compile(r"//!\s*Placeholder\.|fn main\(\) \{\}")
@@ -146,6 +148,71 @@ def check_docs() -> list[str]:
                 problems.append(
                     f"{document.relative_to(ROOT).as_posix()} links to missing {target}"
                 )
+    return problems
+
+
+def check_edition() -> list[str]:
+    """The workspace targets edition 2024, and nothing quietly downgrades it."""
+    problems = []
+    data = tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))
+    package = data.get("workspace", {}).get("package", {})
+    if package.get("edition") != "2024":
+        problems.append("the workspace must set edition = 2024")
+    rust_version = package.get("rust-version", "0.0")
+    try:
+        major, minor = (int(part) for part in rust_version.split(".")[:2])
+    except ValueError:
+        major, minor = 0, 0
+    if (major, minor) < (1, 85):
+        problems.append(f"edition 2024 needs rust-version >= 1.85, not {rust_version}")
+    for manifest in manifests():
+        text = manifest.read_text(encoding="utf-8")
+        for downgrade in ("2021", "2018", "2015"):
+            if f'edition = "{downgrade}"' in text:
+                problems.append(
+                    f"{manifest.relative_to(ROOT).as_posix()}: "
+                    f"edition {downgrade} overrides the workspace"
+                )
+    return problems
+
+
+def check_release() -> list[str]:
+    """What a release promises, checked before it can be tagged."""
+    problems = []
+    workflow = ROOT / ".github" / "workflows" / "release.yml"
+    if not workflow.exists():
+        return ["the release workflow is missing"]
+    text = workflow.read_text(encoding="utf-8")
+    for platform in ("linux", "macos", "windows", "arch"):
+        if f"\n  {platform}:\n" not in text:
+            problems.append(f"the release workflow has no {platform} job")
+    if "action-gh-release" not in text:
+        problems.append("the release workflow never uploads anything")
+    plist = ROOT / "packaging" / "macos" / "Info.plist"
+    if not plist.exists():
+        problems.append("packaging/macos/Info.plist is missing")
+    else:
+        try:
+            bundle = plistlib.loads(plist.read_bytes())
+        except Exception as error:  # noqa: BLE001 - any parse failure is the problem
+            problems.append(f"packaging/macos/Info.plist does not parse: {error}")
+        else:
+            for key in ("CFBundleExecutable", "CFBundleIdentifier", "CFBundleIconFile"):
+                if key not in bundle:
+                    problems.append(f"packaging/macos/Info.plist has no {key}")
+    header = ROOT / "crates" / "km-ffi" / "include" / "rustmagic.h"
+    if not header.exists():
+        problems.append("crates/km-ffi/include/rustmagic.h is missing")
+    else:
+        declarations = header.read_text(encoding="utf-8")
+        for symbol in ("rm_keyboard_load", "rm_engine_key", "rm_string_free"):
+            if symbol not in declarations:
+                problems.append(f"rustmagic.h does not declare {symbol}")
+    example = ROOT / "tools" / "smoke" / "abi.c"
+    if not example.exists():
+        problems.append("tools/smoke/abi.c is missing")
+    elif '#include "rustmagic.h"' not in example.read_text(encoding="utf-8"):
+        problems.append("tools/smoke/abi.c does not use the installed header")
     return problems
 
 
@@ -264,6 +331,8 @@ RULES = {
     "workspace": check_workspace,
     "fixtures": check_fixtures,
     "assets": check_assets,
+    "edition": check_edition,
+    "release": check_release,
 }
 
 
