@@ -1,0 +1,17 @@
+[package]
+name = "km-script"
+description = "KeyMagic layout script (.kms) compiler"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+km-core = { workspace = true }
+km-binary = { workspace = true }
+
+[lints]
+workspace = true
