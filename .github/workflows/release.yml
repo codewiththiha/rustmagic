@@ -1,0 +1,303 @@
+name: release
+
+# Cut a release by pushing a tag:
+#
+#     cargo xtask release 0.2.0      # bumps the version and tags
+#     git push origin main --tags    # or push the tag alone
+#
+# Everything below runs from the tag, so an artifact can always be traced back to
+# the commit and the version it was built from. Each job uploads into one draft
+# release; the last job publishes it once every target has landed.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (for example v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  linux:
+    name: linux x86_64
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: resolve the version
+        id: version
+        shell: bash
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+      - name: window and IBus dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev libxkbcommon-dev libwayland-dev libx11-dev \
+            libxi-dev libxcursor-dev libxrandr-dev libibus-1.0-dev ibus dbus
+      - name: build
+        run: |
+          cargo build --release --locked \
+            --package rustmagic --package rustmagic-cli --package rustmagic-ibus \
+            --package km-ffi
+      - name: test before shipping
+        run: cargo test --release --locked --workspace
+      - name: exercise the engine over D-Bus
+        run: dbus-run-session -- tools/smoke/ibus.sh
+      - name: assemble
+        run: |
+          out="rustmagic-${{ steps.version.outputs.version }}-linux-x86_64"
+          mkdir -p "$out/bin" "$out/lib" "$out/include" \
+                   "$out/share/ibus/component" "$out/share/applications" \
+                   "$out/share/icons/hicolor/scalable/apps"
+          install -m755 target/release/libkm_ffi.so "$out/lib/"
+          install -m644 crates/km-ffi/include/rustmagic.h "$out/include/"
+          install -m755 target/release/rustmagic target/release/rustmagic-cli \
+            target/release/rustmagic-ibus "$out/bin/"
+          install -m644 assets/ibus/rustmagic.xml "$out/share/ibus/component/"
+          install -m644 packaging/linux/rustmagic.desktop "$out/share/applications/"
+          install -m644 packaging/linux/rustmagic.svg \
+            packaging/linux/rustmagic-ibus.svg \
+            "$out/share/icons/hicolor/scalable/apps/"
+          install -m644 README.md LICENSE "$out/"
+          install -m644 docs/LINUX.md "$out/"
+          cat <<'TXT' | sed 's/^          //' > "$out/INSTALL"
+          RustMagic on Linux
+
+            sudo install -Dm755 bin/* /usr/bin/
+            sudo install -Dm644 share/ibus/component/rustmagic.xml \
+                 /usr/share/ibus/component/rustmagic.xml
+            sudo install -Dm644 share/applications/rustmagic.desktop \
+                 /usr/share/applications/rustmagic.desktop
+            sudo install -Dm644 share/icons/hicolor/scalable/apps/*.svg \
+                 /usr/share/icons/hicolor/scalable/apps/
+            ibus write-cache && ibus restart
+
+          lib/libkm_ffi.so and include/rustmagic.h are the C ABI, for another
+          input-method framework. They are optional; the IBus engine does not
+          use them.
+
+          Then add "RustMagic" in your desktop's input-method settings.
+          Arch users can use packaging/arch/PKGBUILD instead.
+          TXT
+          tar czf "$out.tar.gz" "$out"
+          sha256sum "$out.tar.gz" > "$out.tar.gz.sha256"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          draft: true
+          files: |
+            rustmagic-*.tar.gz
+            rustmagic-*.tar.gz.sha256
+
+  macos:
+    name: macos universal
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+      - name: resolve the version
+        id: version
+        shell: bash
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: build both architectures
+        run: |
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --release --locked --target "$target" \
+              --package rustmagic --package rustmagic-cli --package km-ffi
+          done
+      - name: test on the host architecture
+        run: cargo test --release --locked -p km-core -p km-binary -p km-script -p km-engine -p km-store -p km-session -p ui-egui
+      - name: assemble a universal app
+        run: |
+          out="rustmagic-${{ steps.version.outputs.version }}-macos-universal"
+          app="$out/RustMagic.app/Contents"
+          mkdir -p "$app/MacOS" "$app/Resources" "$out/bin" "$out/lib"
+          for binary in rustmagic rustmagic-cli; do
+            lipo -create -output "$out/bin/$binary" \
+              "target/aarch64-apple-darwin/release/$binary" \
+              "target/x86_64-apple-darwin/release/$binary"
+          done
+          lipo -create -output "$out/lib/libkm_ffi.dylib" \
+            target/aarch64-apple-darwin/release/libkm_ffi.dylib \
+            target/x86_64-apple-darwin/release/libkm_ffi.dylib
+          cp "$out/bin/rustmagic" "$app/MacOS/RustMagic"
+          cp packaging/macos/Info.plist "$app/Info.plist"
+          # Build the .icns from the committed 1024px icon with Apple's tools.
+          iconset="$(mktemp -d)/RustMagic.iconset"
+          mkdir -p "$iconset"
+          for size in 16 32 128 256 512; do
+            sips -z $size $size packaging/macos/rustmagic.png \
+              --out "$iconset/icon_${size}x${size}.png" >/dev/null
+            sips -z $((size * 2)) $((size * 2)) packaging/macos/rustmagic.png \
+              --out "$iconset/icon_${size}x${size}@2x.png" >/dev/null
+          done
+          iconutil -c icns "$iconset" -o "$app/Resources/RustMagic.icns"
+          printf 'APPL????' > "$app/PkgInfo"
+          install -m644 crates/km-ffi/include/rustmagic.h "$out/lib/"
+          install -m644 README.md LICENSE "$out/"
+          cat <<'TXT' | sed 's/^          //' > "$out/INSTALL"
+          RustMagic on macOS
+
+            open RustMagic.app          # the manager window
+            bin/rustmagic-cli list      # the command line front end
+
+          The app is unsigned; on first launch, right-click and choose Open.
+          There is no macOS input method in this release yet: the engine, the
+          window, the CLI and the C ABI (lib/libkm_ffi.dylib) are here, and the
+          input method is the next piece of work.
+          TXT
+          # A bundle copied out of the archive keeps its executable bit and can
+          # be dragged to /Applications.
+          zip -qry "$out.zip" "$out"
+          shasum -a 256 "$out.zip" > "$out.zip.sha256"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          draft: true
+          files: |
+            rustmagic-*.zip
+            rustmagic-*.zip.sha256
+
+  windows:
+    name: windows x86_64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: resolve the version
+        id: version
+        shell: bash
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+      - name: build
+        run: |
+          cargo build --release --locked --package rustmagic --package rustmagic-cli --package km-ffi
+      - name: test before shipping
+        run: cargo test --release --locked -p km-core -p km-binary -p km-script -p km-engine -p km-store -p km-session -p ui-egui
+      - name: assemble
+        shell: bash
+        run: |
+          out="rustmagic-${{ steps.version.outputs.version }}-windows-x86_64"
+          mkdir -p "$out"
+          cp target/release/rustmagic.exe target/release/rustmagic-cli.exe "$out/"
+          cp target/release/km_ffi.dll "$out/"
+          cp crates/km-ffi/include/rustmagic.h "$out/"
+          cp packaging/windows/rustmagic.ico "$out/"
+          cp README.md LICENSE "$out/"
+          cat <<'TXT' | sed 's/^          //' > "$out/INSTALL.txt"
+          RustMagic on Windows
+
+            rustmagic.exe       the manager window
+            rustmagic-cli.exe   the command line front end, no window needed
+            km_ffi.dll          the engine's C ABI, for an input-method service
+            rustmagic.h         its header
+            rustmagic.ico       the icon, for shortcuts
+
+          There is no TSF text service in this release yet: you can manage and
+          test keyboards, and drive the engine from code, but typing in other
+          applications with a layout needs the TSF service, which is the next
+          piece of work.
+          TXT
+          7z a "$out.zip" "$out" >/dev/null
+          sha256sum "$out.zip" > "$out.zip.sha256"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          draft: true
+          files: |
+            rustmagic-*.zip
+            rustmagic-*.zip.sha256
+
+  arch:
+    name: arch package
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: toolchain and runtime dependencies
+        # `makepkg` refuses to run as root, and it should not need sudo for
+        # anything, so everything the package depends on is installed first.
+        run: pacman -Syu --noconfirm --needed base-devel git curl rust ibus python dbus
+      - uses: actions/checkout@v4
+      - name: resolve the version
+        id: version
+        shell: bash
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+      - name: build the package from the tag
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          # makepkg refuses to run as root, so it runs as a builder user that
+          # owns a copy of the packaging files and the source archive.
+          useradd -m builder
+          install -d -o builder -g builder /home/builder/build
+          cp -r packaging/arch/. /home/builder/build/
+          chown -R builder:builder /home/builder/build
+          cd /home/builder/build
+          sed -i "s/^pkgver=.*/pkgver=$version/" PKGBUILD
+          # The release tarball for the tag is GitHub's own source archive; the
+          # checksum is computed here rather than guessed in the file.
+          url="https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/v$version.tar.gz"
+          # makepkg looks for the file under the name `source=()` gives it.
+          curl -fsSL -o "rustmagic-$version.tar.gz" "$url"
+          checksum=$(sha256sum "rustmagic-$version.tar.gz" | cut -d' ' -f1)
+          sed -i "s|^source=.*|source=(\"rustmagic-\$pkgver.tar.gz::$url\")|" PKGBUILD
+          sed -i "s/^sha256sums=.*/sha256sums=('$checksum')/" PKGBUILD
+          su builder -c "cd /home/builder/build && makepkg --noconfirm --nocheck"
+          su builder -c "cd /home/builder/build && makepkg --printsrcinfo > .SRCINFO"
+          mkdir -p /tmp/assets
+          cp /home/builder/build/*.pkg.tar.zst /tmp/assets/
+          cp /home/builder/build/PKGBUILD /home/builder/build/.SRCINFO /tmp/assets/
+          ls -l /tmp/assets
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          draft: true
+          files: /tmp/assets/*
+
+  publish:
+    name: publish the release
+    needs: [linux, macos, windows, arch]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check every target landed, then publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          # A draft release whose assets are missing a platform is worse than no
+          # release, so the count is checked before anything becomes public.
+          assets=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+                     --json assets --jq '.assets[].name')
+          echo "$assets"
+          for expected in linux-x86_64 macos-universal windows-x86_64 pkg.tar.zst; do
+            if ! echo "$assets" | grep -q "$expected"; then
+              echo "::error::the release has no $expected artifact"
+              exit 1
+            fi
+          done
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
