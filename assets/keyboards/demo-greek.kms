@@ -1,0 +1,29 @@
+/*
+@NAME = "Demo Greek"
+@DESCRIPTION = "A small Greek layout that shows variables, back-references, a switch and virtual keys"
+@FONTFAMILY = "Inter"
+@HOTKEY = "CTRL+SHIFT+G"
+@TRACK_CAPSLOCK = "TRUE"
+@EAT_ALL_UNUSED_KEYS = "FALSE"
+@US_LAYOUT_BASED = "FALSE"
+@SMART_BACKSPACE = "TRUE"
+@TREAT_CTRL_ALT_AS_RALT = "TRUE"
+*/
+
+// Parallel rows: the Latin keys that type a letter, and the Greek letters the
+// same positions name. Case is a row of its own, so Shift reaches the capitals.
+$latin = "abgdezhqiklmnxoprstufcwy"
+$lower = "αβγδεζηθικλμνξοπρστυφχψω"
+$latinUpper = "ABGDEZHQIKLMNXOPRSTUFCWY"
+$upper = "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ"
+
+// One keystroke, one letter, chosen by the position the key matched.
+$latin[*] => $lower[$1]
+$latinUpper[*] => $upper[$1]
+
+// Caps lock arms the uppercase row for exactly the next key.
+<VK_CAPITAL> => ('caps')
+('caps') + $latin[*] => $upper[$1]
+
+// Shift on the W key writes the final sigma, the way a Greek keyboard does.
+<VK_SHIFT & VK_KEY_W> => "ς"
