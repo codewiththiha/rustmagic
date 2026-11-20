@@ -9,6 +9,7 @@
 #   * `rustmagic`        the window, for managing keyboards
 #   * `rustmagic-ibus`   the input method IBus starts
 #   * `rustmagic.xml`    the component file IBus reads to find it
+# and libkm_ffi.so with its header, the C ABI another input method can use.
 
 pkgname=rustmagic
 pkgver=0.1.0
@@ -31,7 +32,8 @@ build() {
     cd "$srcdir/$pkgname-$pkgver"
     export RUSTUP_TOOLCHAIN=${RUSTUP_TOOLCHAIN:-stable}
     cargo build --release --locked --workspace \
-        --package rustmagic --package rustmagic-cli --package rustmagic-ibus
+        --package rustmagic --package rustmagic-cli --package rustmagic-ibus \
+        --package km-ffi
 }
 
 check() {
@@ -54,6 +56,11 @@ package() {
         "$pkgdir/usr/share/icons/hicolor/scalable/apps/rustmagic.svg"
     install -Dm644 packaging/linux/rustmagic-ibus.svg \
         "$pkgdir/usr/share/icons/hicolor/scalable/apps/rustmagic-ibus.svg"
+
+    # The C ABI, so another input-method framework can host the engine.
+    install -Dm755 target/release/libkm_ffi.so "$pkgdir/usr/lib/libkm_ffi.so"
+    install -Dm644 crates/km-ffi/include/rustmagic.h \
+        "$pkgdir/usr/include/rustmagic.h"
 
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
