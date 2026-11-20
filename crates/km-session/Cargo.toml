@@ -1,0 +1,20 @@
+[package]
+name = "km-session"
+description = "Engine-first application session: commands, events, host capabilities"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+km-core = { workspace = true }
+km-binary = { workspace = true }
+km-script = { workspace = true }
+km-engine = { workspace = true }
+km-store = { workspace = true }
+
+[lints]
+workspace = true
