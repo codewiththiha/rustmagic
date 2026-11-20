@@ -95,6 +95,7 @@ jobs:
           cargo build --release --locked \
             --package rustmagic --package rustmagic-cli --package rustmagic-ibus
       - name: check the packaging files
+        shell: bash
         run: |
           bash -n packaging/arch/PKGBUILD
           bash -n packaging/arch/PKGBUILD-git
@@ -107,9 +108,14 @@ jobs:
           install -d -o builder -g builder /tmp/pkg
           cp packaging/arch/PKGBUILD packaging/arch/rustmagic.install /tmp/pkg/
           chown builder:builder /tmp/pkg/PKGBUILD /tmp/pkg/rustmagic.install
-          su builder -c "cd /tmp/pkg && makepkg --printsrcinfo > .SRCINFO"
-          grep -q '^pkgname = rustmagic$' /tmp/pkg/.SRCINFO
-          grep -q '^depends = ibus$' /tmp/pkg/.SRCINFO
+          su builder -s /bin/bash -c "cd /tmp/pkg && makepkg --printsrcinfo" > /tmp/pkg/.SRCINFO
+          # Print it, so a failed assertion below explains itself.
+          cat /tmp/pkg/.SRCINFO
+          # .SRCINFO indents every field with a tab; the anchor is the field.
+          grep -qE '^pkgbase = rustmagic$' /tmp/pkg/.SRCINFO
+          grep -qE '^[[:space:]]*pkgname = rustmagic$' /tmp/pkg/.SRCINFO
+          grep -qE '^[[:space:]]*depends = ibus$' /tmp/pkg/.SRCINFO
+          grep -qE '^[[:space:]]*install = rustmagic.install$' /tmp/pkg/.SRCINFO
       - name: drive the engine with libibus
         run: dbus-run-session -- tools/smoke/ibus.sh
 

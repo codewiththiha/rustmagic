@@ -266,8 +266,8 @@ jobs:
           checksum=$(sha256sum "rustmagic-$version.tar.gz" | cut -d' ' -f1)
           sed -i "s|^source=.*|source=(\"rustmagic-\$pkgver.tar.gz::$url\")|" PKGBUILD
           sed -i "s/^sha256sums=.*/sha256sums=('$checksum')/" PKGBUILD
-          su builder -c "cd /home/builder/build && makepkg --noconfirm --nocheck"
-          su builder -c "cd /home/builder/build && makepkg --printsrcinfo > .SRCINFO"
+          su builder -s /bin/bash -c "cd /home/builder/build && makepkg --noconfirm --nocheck"
+          su builder -s /bin/bash -c "cd /home/builder/build && makepkg --printsrcinfo > .SRCINFO"
           mkdir -p /tmp/assets
           cp /home/builder/build/*.pkg.tar.zst /tmp/assets/
           cp /home/builder/build/PKGBUILD /home/builder/build/.SRCINFO /tmp/assets/
