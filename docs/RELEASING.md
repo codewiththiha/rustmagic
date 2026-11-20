@@ -26,7 +26,7 @@ which is why the bump and the tag come from the same command.
 | Job | Runner | Files | Verified by |
 | --- | --- | --- | --- |
 | `linux` | ubuntu-22.04 | `rustmagic-<v>-linux-x86_64.tar.gz` (+ `.sha256`) | `cargo test`, then `tools/smoke/ibus.sh` over a real D-Bus session |
-| `macos` | macos-14 | `rustmagic-<v>-macos-universal.zip` (+ `.sha256`) | `cargo test`, plus a `lipo` check that both slices are present |
+| `macos` | macos-latest | `rustmagic-<v>-macos-universal.zip` (+ `.sha256`) | `cargo test`, then `lipo -archs` on each binary to prove both slices are really there |
 | `windows` | windows-latest | `rustmagic-<v>-windows-x86_64.zip` (+ `.sha256`) | `cargo test` |
 | `arch` | `archlinux:latest` container | `rustmagic-<v>-1-x86_64.pkg.tar.zst`, `rustmagic-<v>-PKGBUILD`, `rustmagic-<v>.SRCINFO` | `makepkg` builds the package as a non-root user, after the same tests |
 

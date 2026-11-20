@@ -147,6 +147,15 @@ jobs:
           lipo -create -output "$out/lib/libkm_ffi.dylib" \
             target/aarch64-apple-darwin/release/libkm_ffi.dylib \
             target/x86_64-apple-darwin/release/libkm_ffi.dylib
+          # lipo exits 0 even when it silently produced one slice, so the
+          # architectures are read back and checked.
+          for fat in "$out/bin/rustmagic" "$out/bin/rustmagic-cli" "$out/lib/libkm_ffi.dylib"; do
+            archs=$(lipo -archs "$fat")
+            case "$archs" in
+              *x86_64*arm64* | *arm64*x86_64*) echo "universal: $fat ($archs)" ;;
+              *) echo "not universal: $fat ($archs)"; exit 1 ;;
+            esac
+          done
           cp "$out/bin/rustmagic" "$app/MacOS/RustMagic"
           cp packaging/macos/Info.plist "$app/Info.plist"
           # Build the .icns from the committed 1024px icon with Apple's tools.
