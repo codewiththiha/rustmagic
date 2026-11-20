@@ -31,6 +31,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          # On a tag push this is the tag; on a manual run it is the tag that
+          # was asked for. Either way the source is what the version names.
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: resolve the version
@@ -103,9 +107,13 @@ jobs:
 
   macos:
     name: macos universal
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # On a tag push this is the tag; on a manual run it is the tag that
+          # was asked for. Either way the source is what the version names.
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
@@ -182,6 +190,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # On a tag push this is the tag; on a manual run it is the tag that
+          # was asked for. Either way the source is what the version names.
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: resolve the version
@@ -240,6 +252,10 @@ jobs:
         # anything, so everything the package depends on is installed first.
         run: pacman -Syu --noconfirm --needed base-devel git curl rust ibus python dbus
       - uses: actions/checkout@v4
+        with:
+          # On a tag push this is the tag; on a manual run it is the tag that
+          # was asked for. Either way the source is what the version names.
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - name: resolve the version
         id: version
         shell: bash
@@ -284,6 +300,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # On a tag push this is the tag; on a manual run it is the tag that
+          # was asked for. Either way the source is what the version names.
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - name: check every target landed, then publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
