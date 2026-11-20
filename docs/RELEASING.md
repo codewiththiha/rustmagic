@@ -28,7 +28,7 @@ which is why the bump and the tag come from the same command.
 | `linux` | ubuntu-22.04 | `rustmagic-<v>-linux-x86_64.tar.gz` (+ `.sha256`) | `cargo test`, then `tools/smoke/ibus.sh` over a real D-Bus session |
 | `macos` | macos-14 | `rustmagic-<v>-macos-universal.zip` (+ `.sha256`) | `cargo test`, plus a `lipo` check that both slices are present |
 | `windows` | windows-latest | `rustmagic-<v>-windows-x86_64.zip` (+ `.sha256`) | `cargo test` |
-| `arch` | `archlinux:base-devel` container | `rustmagic-<v>-1-x86_64.pkg.tar.zst`, `PKGBUILD`, `.SRCINFO` | `makepkg` builds the package as a non-root user, after the same tests |
+| `arch` | `archlinux:latest` container | `rustmagic-<v>-1-x86_64.pkg.tar.zst`, `rustmagic-<v>-PKGBUILD`, `rustmagic-<v>.SRCINFO` | `makepkg` builds the package as a non-root user, after the same tests |
 
 The four jobs run in parallel; `publish` waits for all of them and asserts that
 each expected file exists before it turns the draft release public. A job that
@@ -69,10 +69,12 @@ choose Open.
 
 ### On Arch
 
-The tarball upload is the package itself plus the two files needed to rebuild it:
-`makepkg -si` in this directory after extracting, or `pacman -U` straight from
-the `.pkg.tar.zst`. `packaging/arch/PKGBUILD-git` is the rolling alternative and
-is not built by CI.
+The download is the package itself plus the two files needed to rebuild exactly
+it: the `-PKGBUILD` has the version and the checksum of that tag pinned, so
+`makepkg -si` next to it reproduces the same package, and `pacman -U` installs
+the `.pkg.tar.zst` directly. Both `-debug` and the debug symbols are switched
+off, so there is one package and not two. `packaging/arch/PKGBUILD-git` is the
+rolling alternative and is not built by CI.
 
 ## What a release does *not* contain
 

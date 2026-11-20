@@ -284,9 +284,12 @@ jobs:
           sed -i "s/^sha256sums=.*/sha256sums=('$checksum')/" PKGBUILD
           su builder -s /bin/bash -c "cd /home/builder/build && makepkg --noconfirm --nocheck"
           su builder -s /bin/bash -c "cd /home/builder/build && makepkg --printsrcinfo > .SRCINFO"
+          # The release carries the package and the two files needed to rebuild
+          # it. The .SRCINFO gets a name: a dot file is not useful as a download.
           mkdir -p /tmp/assets
-          cp /home/builder/build/*.pkg.tar.zst /tmp/assets/
-          cp /home/builder/build/PKGBUILD /home/builder/build/.SRCINFO /tmp/assets/
+          cp /home/builder/build/rustmagic-"$version"-*.pkg.tar.zst /tmp/assets/
+          cp /home/builder/build/PKGBUILD "/tmp/assets/rustmagic-$version-PKGBUILD"
+          cp /home/builder/build/.SRCINFO "/tmp/assets/rustmagic-$version.SRCINFO"
           ls -l /tmp/assets
       - uses: softprops/action-gh-release@v2
         with:
