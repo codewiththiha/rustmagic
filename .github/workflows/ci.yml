@@ -119,6 +119,53 @@ jobs:
       - name: drive the engine with libibus
         run: dbus-run-session -- tools/smoke/ibus.sh
 
+  package:
+    name: the installers build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: tools and window dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            librsvg2-bin imagemagick \
+            libgl1-mesa-dev libxkbcommon-dev libwayland-dev libx11-dev \
+            libxi-dev libxcursor-dev libxrandr-dev libibus-1.0-dev
+      - name: build the binaries
+        run: |
+          cargo build --release --locked \
+            --package rustmagic --package rustmagic-cli --package rustmagic-ibus \
+            --package km-ffi
+      - name: build the .deb and the tarball
+        run: python3 tools/package/linux.py --version 0.0.0-ci
+      - name: the .deb is a real package
+        run: |
+          deb=dist/rustmagic_0.0.0-ci_amd64.deb
+          test -s "$deb"
+          dpkg-deb -f "$deb" Depends | grep -q 'ibus'
+          dpkg-deb -f "$deb" Version | grep -qx '0.0.0-ci'
+          contents=$(dpkg-deb -c "$deb" | awk '{print $6}')
+          for expected in \
+              ./usr/bin/rustmagic \
+              ./usr/bin/rustmagic-ibus \
+              ./usr/share/ibus/component/rustmagic.xml \
+              ./usr/share/rustmagic/keyboards/zawgyi.km2 \
+              ./usr/include/rustmagic.h \
+              ./usr/lib/rustmagic/libkm_ffi.so
+          do
+            echo "$contents" | grep -qx "$expected" \
+              || { echo "::error::$expected is missing from the .deb"; exit 1; }
+          done
+          echo "$contents"
+      - name: the brand icon renders
+        run: |
+          tools/package/icons.sh dist/brand
+          # A renderer that drops gradients or masks produces a blank square,
+          # which is still a valid PNG, so the pixels are checked, not the size.
+          python3 tools/package/check_icon.py dist/brand
+
   abi:
     name: the C ABI links
     runs-on: ubuntu-latest

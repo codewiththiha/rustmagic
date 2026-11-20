@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 
 use egui::{Context, RawInput, Rect, Vec2};
-use km_session::{Command, HeadlessHost, Route, Session};
+use km_session::{Command, HeadlessHost, Route, Seed, Session};
 use km_store::Theme;
 use ui_egui::Ui;
 
@@ -18,7 +18,7 @@ fn demo_source() -> PathBuf {
 fn session(name: &str) -> Session {
     let root = std::env::temp_dir().join(format!("rustmagic-ui-{name}"));
     let _ = std::fs::remove_dir_all(&root);
-    Session::open(Box::new(HeadlessHost::new(root)))
+    Session::open_with(Box::new(HeadlessHost::new(root)), Seed::Nothing)
 }
 
 fn draw(ui: &mut Ui, session: &mut Session, size: Vec2, frames: usize) {

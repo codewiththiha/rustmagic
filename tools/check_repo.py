@@ -183,7 +183,7 @@ def check_release() -> list[str]:
     if not workflow.exists():
         return ["the release workflow is missing"]
     text = workflow.read_text(encoding="utf-8")
-    for platform in ("linux", "macos", "windows", "arch"):
+    for platform in ("linux", "rpm", "macos", "windows", "arch"):
         if f"\n  {platform}:\n" not in text:
             problems.append(f"the release workflow has no {platform} job")
     if "action-gh-release" not in text:
@@ -208,11 +208,51 @@ def check_release() -> list[str]:
         for symbol in ("rm_keyboard_load", "rm_engine_key", "rm_string_free"):
             if symbol not in declarations:
                 problems.append(f"rustmagic.h does not declare {symbol}")
+    for installer in (
+        "packaging/rpm/rustmagic.spec",
+        "packaging/windows/rustmagic.iss",
+        "packaging/windows/rustmagic.wxs",
+        "packaging/brand/rustmagic.svg",
+        "tools/package/linux.py",
+        "tools/package/dmg.sh",
+        "tools/package/icons.sh",
+        "tools/package/check_icon.py",
+    ):
+        if not (ROOT / installer).exists():
+            problems.append(f"{installer} is missing")
+    pkgbuild = ROOT / "packaging" / "arch" / "PKGBUILD"
+    if pkgbuild.exists():
+        text = pkgbuild.read_text(encoding="utf-8")
+        for line in text.splitlines():
+            if line.startswith("install="):
+                script = line.split("=", 1)[1].strip()
+                # A PKGBUILD that names an install script it does not come with
+                # fails at `makepkg -si`, which is how a user finds out.
+                if not (pkgbuild.parent / script).exists():
+                    problems.append(f"PKGBUILD installs {script}, which is not beside it")
     example = ROOT / "tools" / "smoke" / "abi.c"
     if not example.exists():
         problems.append("tools/smoke/abi.c is missing")
     elif '#include "rustmagic.h"' not in example.read_text(encoding="utf-8"):
         problems.append("tools/smoke/abi.c does not use the installed header")
+    return problems
+
+
+def check_bundled() -> list[str]:
+    """The keyboards on disk and the ones compiled in are the same five."""
+    problems = []
+    directory = ROOT / "keyboards" / "bundled"
+    files = {path.name for path in directory.glob("*.km2")} if directory.exists() else set()
+    if not files:
+        return ["keyboards/bundled has no keyboards"]
+    module = ROOT / "crates" / "km-store" / "src" / "bundled.rs"
+    text = module.read_text(encoding="utf-8") if module.exists() else ""
+    for name in sorted(files):
+        if name not in text:
+            problems.append(f"keyboards/bundled/{name} is not embedded by km-store")
+    for name in re.findall(r'include_bytes!\("../../../(keyboards/bundled/[^"]+)"\)', text):
+        if Path(name).name not in files:
+            problems.append(f"km-store embeds {name}, which does not exist")
     return problems
 
 
@@ -332,6 +372,7 @@ RULES = {
     "fixtures": check_fixtures,
     "assets": check_assets,
     "edition": check_edition,
+    "bundled": check_bundled,
     "release": check_release,
 }
 

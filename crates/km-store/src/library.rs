@@ -145,6 +145,27 @@ impl Library {
         self.entry(&self.keyboards().join(format!("{id}.km2")))
     }
 
+    /// Installs any bundled keyboard the library does not have yet.
+    ///
+    /// Only missing files are written, so a keyboard the user has edited or
+    /// replaced is never overwritten by an upgrade. Returns what was installed.
+    pub fn seed_bundled(&self) -> Result<Vec<Entry>> {
+        let mut installed = Vec::new();
+        for bundled in crate::BUNDLED {
+            let path = self.keyboards().join(format!("{}.km2", bundled.id));
+            if path.is_file() {
+                continue;
+            }
+            installed.push(self.install_bytes(bundled.id, bundled.bytes)?);
+        }
+        Ok(installed)
+    }
+
+    /// Every bundled keyboard, whether or not it is installed.
+    pub fn bundled() -> &'static [crate::Bundled] {
+        crate::BUNDLED
+    }
+
     /// Deletes a keyboard and its source.
     pub fn remove(&self, id: &str) -> Result<()> {
         let id = safe_id(id)?;

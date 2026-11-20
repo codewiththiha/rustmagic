@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  RustMagic for Windows as an MSI, for anyone deploying with Group Policy, Intune
+  or `msiexec /i`. The Inno Setup .exe is the friendlier download; this is the
+  one an administrator can push.
+
+    candle.exe -dVersion=0.2.0 -out dist\rustmagic.wixobj packaging\windows\rustmagic.wxs
+    light.exe -ext WixUIExtension -out dist\RustMagic-0.2.0-x64.msi dist\rustmagic.wixobj
+
+  WiX 3 syntax, because that is what the Windows runners ship. File components
+  use Guid="*", which WiX fills in from the path, so the same tree always
+  produces the same component identity and upgrades replace rather than pile up.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+      Id="*"
+      Name="RustMagic $(var.Version)"
+      Language="1033"
+      Version="$(var.Version)"
+      Manufacturer="RustMagic contributors"
+      UpgradeCode="18CA1AAD-FF22-5DEA-9A9C-D692CE09B6FE">
+
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine"
+             Description="Keyboard layout engine for Myanmar and other scripts" />
+    <MajorUpgrade DowngradeErrorMessage="A newer RustMagic is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="RustMagicIcon" SourceFile="packaging\windows\rustmagic.ico" />
+    <Property Id="ARPPRODUCTICON" Value="RustMagicIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/codewiththiha/rustmagic" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="RustMagic">
+          <Directory Id="KeyboardsFolder" Name="keyboards" />
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="RustMagic" />
+      </Directory>
+      <Directory Id="DesktopFolder" />
+    </Directory>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="MainExecutable" Guid="*">
+        <File Id="RustMagicExe" Source="dist\windows\rustmagic.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="CommandLine" Guid="*">
+        <File Id="RustMagicCliExe" Source="dist\windows\rustmagic-cli.exe" KeyPath="yes" />
+        <Environment Id="PathEntry" Name="PATH" Value="[INSTALLFOLDER]" Part="last"
+                     Action="set" Permanent="no" System="yes" />
+      </Component>
+      <Component Id="CEngine" Guid="*">
+        <File Id="KmFfiDll" Source="dist\windows\km_ffi.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="CEngineHeader" Guid="*">
+        <File Id="RustMagicHeader" Source="dist\windows\rustmagic.h" KeyPath="yes" />
+      </Component>
+      <Component Id="Documents" Guid="*">
+        <File Id="Readme" Source="dist\windows\README.md" KeyPath="yes" />
+        <File Id="Licence" Source="dist\windows\LICENSE" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="KeyboardsFolder">
+      <Component Id="BundledKeyboards" Guid="*">
+        <File Id="KbPyidaungsu" Source="dist\windows\keyboards\pyidaungsu-mm.km2" KeyPath="yes" />
+        <File Id="KbMyWin" Source="dist\windows\keyboards\my-win.km2" />
+        <File Id="KbMyanSan" Source="dist\windows\keyboards\myansan.km2" />
+        <File Id="KbZawgyi" Source="dist\windows\keyboards\zawgyi.km2" />
+        <File Id="KbZawCode" Source="dist\windows\keyboards\zawcode.km2" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="StartMenuShortcut" Guid="*">
+        <Shortcut Id="StartMenuShortcut" Name="RustMagic"
+                  Description="Keyboard layout engine"
+                  Target="[INSTALLFOLDER]rustmagic.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\RustMagic" Name="installed"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="*">
+        <Shortcut Id="DesktopShortcut" Name="RustMagic"
+                  Description="Keyboard layout engine"
+                  Target="[INSTALLFOLDER]rustmagic.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\RustMagic" Name="desktop"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="Complete" Title="RustMagic" Level="1" Absent="disallow">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="CommandLine" />
+      <ComponentRef Id="CEngine" />
+      <ComponentRef Id="CEngineHeader" />
+      <ComponentRef Id="Documents" />
+      <ComponentRef Id="BundledKeyboards" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <UIRef Id="WixUI_InstallDir" />
+  </Product>
+</Wix>

@@ -15,9 +15,6 @@ use eframe::egui;
 use km_session::{Command, Session};
 use ui_egui::Ui;
 
-/// The keyboard every install starts with, compiled from source at first run.
-const DEMO: &str = include_str!("../../../assets/keyboards/demo-greek.kms");
-
 /// The eframe shell.
 struct Shell {
     session: Session,
@@ -39,8 +36,9 @@ impl eframe::App for Shell {
 fn main() -> eframe::Result<()> {
     let host = host::DesktopHost::new();
     let clipboard = host.clipboard();
-    let mut session = Session::open(Box::new(host));
-    session.seed_text("demo-greek", DEMO);
+    // The bundled keyboards are installed by `Session::open`, so there is
+    // nothing to seed here.
+    let session = Session::open(Box::new(host));
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()

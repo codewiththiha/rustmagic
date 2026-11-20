@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use km_core::Modifiers;
-use km_session::{Command, HeadlessHost, Route, Session, ToastKind};
+use km_session::{Command, HeadlessHost, Route, Seed, Session, ToastKind};
 use km_store::Theme;
 
 fn demo_source() -> PathBuf {
@@ -14,9 +14,29 @@ fn demo_source() -> PathBuf {
 fn session(name: &str) -> Session {
     let root = std::env::temp_dir().join(format!("rustmagic-session-{name}"));
     let _ = std::fs::remove_dir_all(&root);
-    let mut session = Session::open(Box::new(HeadlessHost::new(root)));
+    let mut session = Session::open_with(Box::new(HeadlessHost::new(root)), Seed::Nothing);
     session.seed(&[demo_source()]);
     session
+}
+
+#[test]
+fn a_fresh_install_has_the_keyboards_keymagic_ships() {
+    let root = std::env::temp_dir().join("rustmagic-session-bundled");
+    let _ = std::fs::remove_dir_all(&root);
+    let session = Session::open(Box::new(HeadlessHost::new(&root)));
+    let ids: Vec<&str> = session
+        .entries()
+        .iter()
+        .map(|entry| entry.id.as_str())
+        .collect();
+    for expected in ["pyidaungsu-mm", "my-win", "myansan", "zawgyi", "zawcode"] {
+        assert!(ids.contains(&expected), "{expected} is missing: {ids:?}");
+    }
+    assert!(session.active().is_some(), "one of them is active");
+
+    // Opening again must not duplicate or overwrite anything.
+    let reopened = Session::open(Box::new(HeadlessHost::new(&root)));
+    assert_eq!(reopened.entries().len(), session.entries().len());
 }
 
 #[test]
@@ -48,7 +68,7 @@ fn typing_runs_the_engine_and_fills_the_log() {
 fn a_keyboard_that_is_not_active_leaves_no_log() {
     let root = std::env::temp_dir().join("rustmagic-session-empty");
     let _ = std::fs::remove_dir_all(&root);
-    let mut session = Session::open(Box::new(HeadlessHost::new(root)));
+    let mut session = Session::open_with(Box::new(HeadlessHost::new(root)), Seed::Nothing);
     session.execute(Command::SandboxType { text: "ab".into() });
     assert_eq!(session.sandbox().log(), []);
     assert_eq!(session.sandbox().text(), "");
@@ -161,7 +181,7 @@ fn settings_and_the_library_survive_a_restart() {
     let root = std::env::temp_dir().join("rustmagic-session-restart");
     let _ = std::fs::remove_dir_all(&root);
     {
-        let mut session = Session::open(Box::new(HeadlessHost::new(&root)));
+        let mut session = Session::open_with(Box::new(HeadlessHost::new(&root)), Seed::Nothing);
         session.seed(&[demo_source()]);
         session.execute(Command::SandboxType { text: "ab".into() });
         session.execute(Command::SetTheme {
@@ -169,7 +189,7 @@ fn settings_and_the_library_survive_a_restart() {
         });
         session.execute(Command::Save);
     }
-    let session = Session::open(Box::new(HeadlessHost::new(&root)));
+    let session = Session::open_with(Box::new(HeadlessHost::new(&root)), Seed::Nothing);
     assert_eq!(session.settings().theme, Theme::Light);
     assert_eq!(
         session.active().map(|active| active.id.as_str()),

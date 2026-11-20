@@ -207,7 +207,7 @@ impl EngineApp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use km_session::HeadlessHost;
+    use km_session::{HeadlessHost, Seed};
 
     const DEMO: &str = concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -218,7 +218,7 @@ mod tests {
     fn app_named(name: &str) -> EngineApp {
         let root = std::env::temp_dir().join(format!("rustmagic-ibus-{name}"));
         let _ = std::fs::remove_dir_all(&root);
-        let mut session = Session::open(Box::new(HeadlessHost::new(root)));
+        let mut session = Session::open_with(Box::new(HeadlessHost::new(root)), Seed::Nothing);
         session.seed_text("demo-greek", &std::fs::read_to_string(DEMO).unwrap());
         EngineApp::new(session, "rustmagic").expect("an engine")
     }

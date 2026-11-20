@@ -38,7 +38,6 @@ build() {
 
 check() {
     cd "$srcdir/$pkgname-$pkgver"
-    python3 tools/check_repo.py
     cargo test --release --locked --workspace
 }
 
@@ -57,10 +56,18 @@ package() {
     install -Dm644 packaging/linux/rustmagic-ibus.svg \
         "$pkgdir/usr/share/icons/hicolor/scalable/apps/rustmagic-ibus.svg"
 
-    # The C ABI, so another input-method framework can host the engine.
-    install -Dm755 target/release/libkm_ffi.so "$pkgdir/usr/lib/libkm_ffi.so"
+    # The C ABI, so another input-method framework can host the engine. It is
+    # not a system library (no soname), so it lives in its own directory.
+    install -Dm644 target/release/libkm_ffi.so \
+        "$pkgdir/usr/lib/$pkgname/libkm_ffi.so"
     install -Dm644 crates/km-ffi/include/rustmagic.h \
         "$pkgdir/usr/include/rustmagic.h"
+
+    # The five keyboards every install starts with; the app also carries them
+    # inside the binary, so these are for anyone who wants the files.
+    install -d "$pkgdir/usr/share/$pkgname/keyboards"
+    install -m644 keyboards/bundled/*.km2 \
+        "$pkgdir/usr/share/$pkgname/keyboards/"
 
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
     install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"

@@ -13,6 +13,15 @@ use crate::host::Host;
 use crate::probe::{self, KeyRow};
 use crate::sandbox::Sandbox;
 
+/// Whether the keyboards that ship with the app are installed on open.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Seed {
+    /// Install any bundled keyboard the library is missing.
+    Bundled,
+    /// Leave the library exactly as it is.
+    Nothing,
+}
+
 /// Which view the window shows.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Route {
@@ -116,8 +125,21 @@ impl std::fmt::Debug for Session {
 impl Session {
     /// Opens the session: reads settings, scans the library, selects a keyboard.
     pub fn open(host: Box<dyn Host>) -> Self {
+        Self::open_with(host, Seed::Bundled)
+    }
+
+    /// Opens a session and says whether the bundled keyboards should be added.
+    ///
+    /// Tests use [Seed::Nothing] when they want to count exactly what they put
+    /// in; every front end uses [Seed::Bundled].
+    pub fn open_with(host: Box<dyn Host>, seed: Seed) -> Self {
         let state = host.state_dir();
         let library = Library::new(state.join("library"));
+        // A read-only or missing state directory is not fatal: the library
+        // simply stays as it was.
+        if seed == Seed::Bundled {
+            let _ = library.seed_bundled();
+        }
         let settings_path = state.join(km_store::SETTINGS_FILE);
         let (settings, problem) = Settings::load(&settings_path);
         let entries = library.list();

@@ -19,4 +19,4 @@ pub use event::{Event, ToastKind};
 pub use host::{HeadlessHost, Host};
 pub use probe::{KeyCap, KeyRow, ROWS};
 pub use sandbox::{KeyEntry, LOG_LIMIT, Sandbox};
-pub use session::{Active, Route, Session};
+pub use session::{Active, Route, Seed, Session};
