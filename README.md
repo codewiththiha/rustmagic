@@ -35,6 +35,8 @@ cd packaging/arch && makepkg -si
 - **Is an input method on Linux** — `km-ibus` is an IBus engine that speaks the
   D-Bus protocol directly, with no glib and no libibus bindings, and it ships an
   Arch package.
+- **Builds for all four platforms from one tag** — Linux tarball, universal macOS
+  app, Windows zip and an Arch package, every one of them tested before upload.
 
 ## The crates
 
@@ -69,17 +71,33 @@ $latin[*] => $lower[$1]              // position picked the letter
 ('caps') + $latin[*] => $upper[$1]   // …for exactly one key
 ```
 
+## Releases
+
+| Platform | Artifact | What works today |
+| --- | --- | --- |
+| Linux | `rustmagic-<v>-linux-x86_64.tar.gz` | window, CLI, C ABI, **IBus engine** |
+| Arch | `rustmagic-<v>-1-x86_64.pkg.tar.zst` | the same, installed by pacman |
+| macOS | `rustmagic-<v>-macos-universal.zip` | window, CLI, C ABI (universal, unsigned) |
+| Windows | `rustmagic-<v>-windows-x86_64.zip` | window, CLI, C ABI |
+
+`git push origin v0.1.0` builds all four — one job per platform, the Arch one in
+a container — and publishes a single release once every artifact is present.
+System-wide typing is IBus-only for now: the Windows TSF service and the macOS
+input method are the remaining pieces of platform parity, and
+[docs/RELEASING.md](docs/RELEASING.md) says so in the release itself.
+
 ## Working on it
 
 ```sh
 cargo xtask check       # fmt, clippy, tests, python gates
+cargo xtask abi         # compile and run the C example against the header
 python3 tools/install_hooks.py
 cargo run -p rustmagic-cli -- layout
 ```
 
 `AGENTS.md` holds the rules for changing this repository; `docs/` holds the
-architecture, the engine contract, the porting record, the workflow and the
-[Linux guide](docs/LINUX.md).
+architecture, the engine contract, the porting record, the workflow, the
+[Linux guide](docs/LINUX.md) and [how a release is cut](docs/RELEASING.md).
 
 ## Licence
 

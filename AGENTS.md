@@ -27,7 +27,8 @@ crates/
   km-engine/    matching and composing: rules, patterns, the key loop
   km-store/     the library of installed keyboards and settings.toml
   km-session/   the application without a window: state, commands, events
-  km-ffi/       the C ABI for platform input-method adapters
+  km-ffi/       the C ABI for platform input-method adapters; include/ holds the
+                header that a C or C++ caller compiles against
   km-ibus/      the IBus engine: the session, spoken over D-Bus
   ui-egui/      the window, drawn with egui; owns no state
 apps/
@@ -40,8 +41,11 @@ docs/             the documents listed under "Documentation"
 fixtures/         keyboard files every test may rely on
 assets/keyboards/ keyboards that ship with the app
 assets/ibus/      the IBus component file
-packaging/        Arch PKGBUILDs, desktop entry and icons
-tools/smoke/      the C client that drives the IBus engine
+packaging/        Arch PKGBUILDs, desktop entry and icons, the macOS Info.plist,
+                  the app icons
+tools/smoke/      the C clients: one drives the IBus engine over D-Bus, one links
+                  the C ABI through the installed header
+.github/workflows/ci.yml on every push; release.yml on a v* tag
 ```
 
 Dependencies point one way only: `km-core` at the bottom, `km-session` in the
@@ -73,7 +77,10 @@ the order from `Cargo.toml`, not from good intentions.
 
 ## Rust
 
-- Edition 2021, `rust-version` as in the workspace manifest, resolver 2.
+- Edition 2024, `rust-version = "1.85"`, resolver 2. Edition 2024 is a hard
+  requirement: `#[unsafe(no_mangle)]`, `unsafe extern`, and the stricter
+  `gen`/`unsafe_op_in_unsafe_fn` rules all come with it, and
+  `tools/check_repo.py` rejects a crate that overrides the edition.
 - `#![deny(missing_docs)]` in every crate: public items carry `///`, modules
   carry `//!`. A doc comment is part of the interface.
 - Workspace lints: `unsafe_code = deny`, `missing_docs = warn`, clippy `all` and
@@ -86,6 +93,11 @@ the order from `Cargo.toml`, not from good intentions.
 - Formatting is `cargo fmt`, imports grouped by `rustfmt`, no manual alignment.
 - Run `cargo xtask check` before you say you are done. It runs `fmt --check`,
   `clippy -D warnings`, `test --workspace`, and the python gates.
+- `cargo xtask abi` compiles `tools/smoke/abi.c` through
+  `crates/km-ffi/include/rustmagic.h`. A change to the ABI that no C program can
+  call is not a change to a shared library, it is a private function.
+- Releasing is `cargo xtask release <version>` and then `git push --tags`; see
+  [docs/RELEASING.md](docs/RELEASING.md) for what each platform ships.
 
 ## egui
 
