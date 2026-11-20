@@ -1,0 +1,20 @@
+[package]
+name = "km-engine"
+description = "The KeyMagic matching engine: rules, context, key processing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+km-core = { workspace = true }
+km-binary = { workspace = true }
+
+[dev-dependencies]
+km-script = { workspace = true }
+
+[lints]
+workspace = true
