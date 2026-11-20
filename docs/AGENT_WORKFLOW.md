@@ -25,6 +25,7 @@ documentation link check. Anything it prints with a `✗` is a failure.
 | `cargo xtask commit "…"` | checks a candidate commit subject and body |
 | `cargo xtask demo` | compiles the bundled keyboard and prints its rules |
 | `cargo xtask hooks` | installs the git hooks |
+| `tools/smoke/ibus.sh` | drives the IBus engine over a private bus with a C client |
 
 ## The python gates
 
@@ -94,11 +95,14 @@ a window narrow enough to break layouts.
    plus the fuzz walk.
 4. If you changed the format or the compiler: `cargo test -p km-binary -p km-script
    -p km-store`, then `verify` a fixture with the CLI.
-5. Report the command and its output, not a summary of it.
+5. If you touched the IBus engine: `dbus-run-session -- tools/smoke/ibus.sh`.
+6. Report the command and its output, not a summary of it.
 
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs the same steps on Linux, macOS and Windows plus
-two extra jobs: one that fails on a commit subject over 50 characters for every
-commit in the push, and one that builds the C ABI and links a C program against
-it, because an ABI that only Rust can use is not an ABI.
+four extra jobs: one that fails on a commit subject over 50 characters for every
+commit in the push; one that builds the C ABI and links a C program against it,
+because an ABI that only Rust can use is not an ABI; one that starts the IBus
+engine on a private bus and checks the replies with libibus; and one that builds
+everything, and validates the packaging, inside an `archlinux` container.

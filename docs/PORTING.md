@@ -93,6 +93,34 @@ warning, because keyboards in the wild rely on them:
 - Virtual keys must come **last** on the left side.
 - Switch conditions consume no characters.
 
+## The Linux input method
+
+KeyMagic's Linux build is an IBus engine written in C against glib: a GObject
+subclass of `IBusEngine`, linked to the engine through the same C ABI this
+repository now exposes. RustMagic keeps the behaviour and drops the C: the engine
+process in `apps/rustmagic-ibus` speaks the IBus D-Bus protocol itself.
+
+What that protocol turned out to be, taken from IBus 1.5's `src/ibusengine.c`,
+`src/ibusfactory.c` and `src/ibusserializable.c`, and confirmed by serialising an
+`IBusText` with libibus and comparing:
+
+| Piece | Wire form |
+| --- | --- |
+| Factory object | `/org/freedesktop/IBus/Factory`, `CreateEngine(s) -> o` |
+| Engine object | `/org/freedesktop/IBus/Engine/1`, interface `org.freedesktop.IBus.Engine` |
+| Key event | `ProcessKeyEvent(u keyval, u keycode, u state) -> b` |
+| Commit | signal `CommitText(v)` |
+| Preedit | signal `UpdatePreeditText(v text, u cursor, b visible, u mode)` |
+| Text payload | `v` holding `(s "IBusText", a{sv} {}, s text, v(… "IBusAttrList" …))` |
+
+The keysym-to-virtual-key table in `crates/km-ibus/src/keymap.rs` replaces the
+original's `keycode_map.c`; the composition policy (preedit while composing,
+commit at a boundary) replaces its `engine.c` state machine, and is simpler
+because this engine's context *is* the preedit.
+
+Verified by `tools/smoke/ibus.sh`: a C client on a private bus asks the factory
+for an engine, sends `a` and space, and decodes the committed text with libibus.
+
 ## The C ABI
 
 `crates/km-ffi` exposes the surface the platform adapters already call, so an
@@ -121,7 +149,8 @@ uses.
 | `.kms` parsing and compiling | complete for every construct the original's compiler accepted |
 | Rule matching, priorities, switches, recursion | complete, with the divergences listed in [ENGINE_SEMANTICS.md](ENGINE_SEMANTICS.md) |
 | Metadata, hotkeys, icons | metadata and hotkeys complete; icon bytes are carried through unparsed |
-| Platform text services (TSF, IBus, macOS) | not written here; the C ABI is the seam where they attach |
+| Linux input method (IBus) | complete: `km-ibus` plus an Arch package, driven by a libibus smoke test |
+| Platform text services (TSF, macOS) | not written here; the C ABI is the seam where they attach |
 | The original's settings window | replaced by `km-session` + `ui-egui` |
 | Keyboard manager dialogs (hotkey capture, layout preview) | preview and hotkey display present; hotkey recording is not |
 

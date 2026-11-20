@@ -11,6 +11,9 @@ platform SDK or a build-time parser generator.
 ```sh
 cargo run -p rustmagic          # the window
 cargo run -p rustmagic-cli -- type "mingalaba"
+
+# Arch Linux: build and install everything, including the IBus engine
+cd packaging/arch && makepkg -si
 ```
 
 ## What it does
@@ -29,6 +32,9 @@ cargo run -p rustmagic-cli -- type "mingalaba"
 - **Drives every front end from one session** — the window, the CLI and the tests
   call the same commands, so they cannot drift.
 - **Speaks C** — `km-ffi` exposes the ABI platform input methods already call.
+- **Is an input method on Linux** — `km-ibus` is an IBus engine that speaks the
+  D-Bus protocol directly, with no glib and no libibus bindings, and it ships an
+  Arch package.
 
 ## The crates
 
@@ -41,9 +47,11 @@ cargo run -p rustmagic-cli -- type "mingalaba"
 | `km-store` | installed keyboards and `settings.toml` |
 | `km-session` | the application without a window: commands, events, state |
 | `km-ffi` | the C ABI |
+| `km-ibus` | the IBus engine: the session over D-Bus |
 | `ui-egui` | the window, drawn with egui |
 | `apps/rustmagic` | the desktop app |
 | `apps/rustmagic-cli` | the terminal front end |
+| `apps/rustmagic-ibus` | the process IBus starts |
 
 Dependencies point one way only, and `tools/check_repo.py` enforces it.
 
@@ -70,7 +78,8 @@ cargo run -p rustmagic-cli -- layout
 ```
 
 `AGENTS.md` holds the rules for changing this repository; `docs/` holds the
-architecture, the engine contract, the porting record and the workflow.
+architecture, the engine contract, the porting record, the workflow and the
+[Linux guide](docs/LINUX.md).
 
 ## Licence
 

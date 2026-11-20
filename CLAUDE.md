@@ -28,15 +28,20 @@ crates/
   km-store/     the library of installed keyboards and settings.toml
   km-session/   the application without a window: state, commands, events
   km-ffi/       the C ABI for platform input-method adapters
+  km-ibus/      the IBus engine: the session, spoken over D-Bus
   ui-egui/      the window, drawn with egui; owns no state
 apps/
   rustmagic/      the desktop app: eframe shell plus a real Host
   rustmagic-cli/  the same session, driven from a terminal
+  rustmagic-ibus/ the process IBus starts
 xtask/            repository chores, `cargo xtask <task>`
 tools/            python gates: repo shape, commit messages, hooks
 docs/             the documents listed under "Documentation"
 fixtures/         keyboard files every test may rely on
 assets/keyboards/ keyboards that ship with the app
+assets/ibus/      the IBus component file
+packaging/        Arch PKGBUILDs, desktop entry and icons
+tools/smoke/      the C client that drives the IBus engine
 ```
 
 Dependencies point one way only: `km-core` at the bottom, `km-session` in the
@@ -100,6 +105,22 @@ the order from `Cargo.toml`, not from good intentions.
 - Keyboard input reaching the sandbox must respect `ctx().wants_keyboard_input()`
   so a text field keeps working.
 
+## The IBus engine
+
+- `km-ibus` is a front end like `ui-egui`: it owns no rules, only the translation
+  between key events and `Session`. Its state is the preedit and the engine
+  handle; nothing else.
+- The D-Bus interface is IBus's, not ours. Before changing a signature, read
+  `src/ibusengine.c` in IBus 1.5 and keep the argument order.
+- An `IBusText` on the wire is a variant of `(sa{sv}sv)` — built in
+  `crates/km-ibus/src/text.rs`. `docs/PORTING.md` records how that was verified.
+- The preedit is the composition; a commit happens when the syllable ends. Adding
+  a key that should end a composition means adding it to `is_terminator`.
+- `tools/smoke/ibus.sh` must pass after any change to the engine: it drives the
+  service over a private bus and decodes the replies with libibus.
+- Never make `km-ibus` depend on glib or libibus. The whole point is that a plain
+  Rust process can be an engine, which is what makes it testable.
+
 ## Documentation
 
 - `docs/ARCHITECTURE.md` explains the layers and the data flow.
@@ -108,6 +129,8 @@ the order from `Cargo.toml`, not from good intentions.
 - `docs/PORTING.md` records what came from where, the `.km2` layout, the
   compiler's encoding, and the parity decisions.
 - `docs/AGENT_WORKFLOW.md` describes the commands, gates and hooks.
+- `docs/LINUX.md` explains the IBus integration, the Arch package, and what is
+  verified where.
 - A behaviour change updates the document that describes it in the same commit.
   A new divergence from the original gets a row in the table in
   `docs/ENGINE_SEMANTICS.md`.

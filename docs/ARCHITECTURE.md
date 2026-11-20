@@ -13,7 +13,7 @@ to change.
                    │                        │
                    └──────────┬─────────────┘
                               ▼
-                       crates/ui-egui  ·  crates/km-ffi
+             crates/ui-egui · crates/km-ffi · crates/km-ibus
                               │              │
                               └──────┬───────┘
                                      ▼
@@ -108,6 +108,12 @@ state only (search text, open palette, toasts) and no engine knowledge.
 `km-ffi` is the same idea for languages that cannot call Rust: opaque handles,
 UTF-8 in and out, caller-owned strings, neutral answers for null pointers.
 
+`km-ibus` is the Linux input method. IBus engines are D-Bus services, so this
+crate exports the factory and engine objects IBus expects and translates key
+events into `Session` calls. It is deliberately glib-free: the protocol is the
+interface, which is what lets `tools/smoke/ibus.sh` drive it from a C client and
+check the replies with libibus itself.
+
 `apps/rustmagic` is an eframe shell plus a `Host` implementation: real state
 directories per platform, a clipboard handed to egui on the next frame, an
 external opener per platform, and the bundled demo keyboard installed on first
@@ -116,6 +122,9 @@ run.
 `apps/rustmagic-cli` builds the same session on a `HeadlessHost` and prints. It is
 how a bug report can say exactly what it typed, and how an agent checks a layout
 without a screen.
+
+`apps/rustmagic-ibus` is the process IBus starts: it opens the session on a host
+with no clipboard or browser, and hands it to the service.
 
 ## A key press, end to end
 
@@ -142,6 +151,8 @@ beyond the edit itself, which is the difference the port is buying.
 | rules reversed in place | stable sort by specificity | equal rules keep file order, which is what authors expect |
 | 20 match rounds then fail | same cap, plus a no-progress stop | `ANY => $1` no longer swallows the key |
 | settings GUI in C++ | `km-session` + `ui-egui` | one owner, testable without a window |
+| IBus engine as a glib GObject | `km-ibus` over D-Bus | no C dependency, and the protocol can be tested |
+| platform engines each own their config | one library, one settings file | the CLI, the window and the IME agree |
 
 The engine-level consequences are written down in
 [ENGINE_SEMANTICS.md](ENGINE_SEMANTICS.md); the port's history is in
