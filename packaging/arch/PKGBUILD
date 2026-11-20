@@ -1,0 +1,60 @@
+# Maintainer: RustMagic contributors
+#
+# Builds RustMagic from a release tarball. The `-git` package next to this file
+# builds straight from the branch, which is what a development machine wants.
+#
+#   makepkg -si
+#
+# The package installs three things a Linux desktop interacts with:
+#   * `rustmagic`        the window, for managing keyboards
+#   * `rustmagic-ibus`   the input method IBus starts
+#   * `rustmagic.xml`    the component file IBus reads to find it
+
+pkgname=rustmagic
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Keyboard layout engine for Myanmar and other scripts, in Rust"
+arch=('x86_64' 'aarch64')
+url="https://github.com/codewiththiha/rustmagic"
+license=('GPL-2.0-or-later')
+depends=('gcc-libs' 'glibc' 'ibus')
+makedepends=('cargo' 'rust')
+checkdepends=('python')
+provides=('keymagic')
+conflicts=('keymagic' 'keymagic3')
+options=('!lto')
+install=rustmagic.install
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$srcdir/$pkgname-$pkgver"
+    export RUSTUP_TOOLCHAIN=${RUSTUP_TOOLCHAIN:-stable}
+    cargo build --release --locked --workspace \
+        --package rustmagic --package rustmagic-cli --package rustmagic-ibus
+}
+
+check() {
+    cd "$srcdir/$pkgname-$pkgver"
+    python3 tools/check_repo.py
+    cargo test --release --locked --workspace
+}
+
+package() {
+    cd "$srcdir/$pkgname-$pkgver"
+    install -Dm755 target/release/rustmagic "$pkgdir/usr/bin/rustmagic"
+    install -Dm755 target/release/rustmagic-cli "$pkgdir/usr/bin/rustmagic-cli"
+    install -Dm755 target/release/rustmagic-ibus "$pkgdir/usr/bin/rustmagic-ibus"
+
+    install -Dm644 assets/ibus/rustmagic.xml \
+        "$pkgdir/usr/share/ibus/component/rustmagic.xml"
+    install -Dm644 packaging/linux/rustmagic.desktop \
+        "$pkgdir/usr/share/applications/rustmagic.desktop"
+    install -Dm644 packaging/linux/rustmagic.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/rustmagic.svg"
+    install -Dm644 packaging/linux/rustmagic-ibus.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/rustmagic-ibus.svg"
+
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

@@ -1,0 +1,55 @@
+# Maintainer: RustMagic contributors
+#
+# Development package: builds the branch as it stands, so `makepkg -si` after a
+# `git pull` is the whole upgrade path.
+
+pkgname=rustmagic-git
+pkgver=r1.0000000
+pkgrel=1
+pkgdesc="Keyboard layout engine for Myanmar and other scripts, in Rust (development)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/codewiththiha/rustmagic"
+license=('GPL-2.0-or-later')
+depends=('gcc-libs' 'glibc' 'ibus')
+makedepends=('git' 'cargo' 'rust')
+checkdepends=('python')
+provides=('rustmagic' 'keymagic')
+conflicts=('rustmagic' 'keymagic' 'keymagic3')
+options=('!lto')
+install=rustmagic.install
+source=("$pkgname::git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$srcdir/$pkgname"
+    printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+    cd "$srcdir/$pkgname"
+    cargo build --release --locked --workspace \
+        --package rustmagic --package rustmagic-cli --package rustmagic-ibus
+}
+
+check() {
+    cd "$srcdir/$pkgname"
+    python3 tools/check_repo.py
+    cargo test --release --locked --workspace
+}
+
+package() {
+    cd "$srcdir/$pkgname"
+    install -Dm755 target/release/rustmagic "$pkgdir/usr/bin/rustmagic"
+    install -Dm755 target/release/rustmagic-cli "$pkgdir/usr/bin/rustmagic-cli"
+    install -Dm755 target/release/rustmagic-ibus "$pkgdir/usr/bin/rustmagic-ibus"
+    install -Dm644 assets/ibus/rustmagic.xml \
+        "$pkgdir/usr/share/ibus/component/rustmagic.xml"
+    install -Dm644 packaging/linux/rustmagic.desktop \
+        "$pkgdir/usr/share/applications/rustmagic.desktop"
+    install -Dm644 packaging/linux/rustmagic.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/rustmagic.svg"
+    install -Dm644 packaging/linux/rustmagic-ibus.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/rustmagic-ibus.svg"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

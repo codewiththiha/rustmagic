@@ -1,0 +1,32 @@
+# Runs after install and after removal on Arch.
+#
+# IBus caches the component list, so it has to be told that one appeared or went
+# away. Doing it here means an upgrade does not silently keep pointing at the
+# previous binary.
+
+post_install() {
+    cat <<'MESSAGE'
+RustMagic is installed.
+
+To start typing with it:
+  1. run `rustmagic` once to install a keyboard into ~/.local/state/rustmagic
+  2. log out and back in, or run `ibus restart`
+  3. add "RustMagic" in your desktop's input-method settings
+
+From a terminal, `rustmagic-cli list` and `rustmagic-cli type "test"` work
+without a window or an input method.
+MESSAGE
+    if command -v ibus >/dev/null 2>&1; then
+        ibus write-cache >/dev/null 2>&1 || true
+    fi
+}
+
+post_upgrade() {
+    post_install
+}
+
+post_remove() {
+    if command -v ibus >/dev/null 2>&1; then
+        ibus write-cache >/dev/null 2>&1 || true
+    fi
+}
