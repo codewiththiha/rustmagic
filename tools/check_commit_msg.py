@@ -43,6 +43,7 @@ AREAS = {
     "ci",
     "repo",
     "assets",
+    "release",
 }
 BANNED = ("wip", "fixup!", "squash!", "tmp", "asdf")
 
