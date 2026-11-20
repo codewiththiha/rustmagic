@@ -21,7 +21,8 @@ cargo xtask <task>
   demo      compile the bundled keyboard and print its rules
   hooks     install the git hooks
   abi       compile and run the C ABI example
-  release   bump to a version, run the gate, commit and tag
+  release   bump to a version, gate, commit and tag
+            cargo xtask release 0.2.0 [--dry-run]
 ";
 
 fn main() -> ExitCode {
@@ -89,7 +90,7 @@ fn run(args: &[String]) -> Result<(), String> {
         }
         "abi" => shell(&["tools/smoke/abi.sh"]),
         "demo" => demo(),
-        "release" => release(rest.first().map(String::as_str)),
+        "release" => release(rest),
         "check" => {
             cargo(&["fmt", "--all", "--check"])?;
             cargo(&[
@@ -113,8 +114,9 @@ fn run(args: &[String]) -> Result<(), String> {
 ///
 /// Pushing the tag is left to the person doing the release, because that is the
 /// step that publishes to the world and it should be deliberate.
-fn release(version: Option<&str>) -> Result<(), String> {
-    let Some(version) = version else {
+fn release(args: &[String]) -> Result<(), String> {
+    let dry_run = args.iter().any(|arg| arg == "--dry-run");
+    let Some(version) = args.iter().find(|arg| !arg.starts_with("--")) else {
         return Err("give a version, for example `cargo xtask release 0.2.0`".to_owned());
     };
     if !version
@@ -123,23 +125,52 @@ fn release(version: Option<&str>) -> Result<(), String> {
     {
         return Err(format!("`{version}` is not a bare version such as 0.2.0"));
     }
-    if !status("git", &["diff", "--quiet"]) || !status("git", &["diff", "--cached", "--quiet"]) {
+    if !dry_run
+        && (!status("git", &["diff", "--quiet"])
+            || !status("git", &["diff", "--cached", "--quiet"]))
+    {
         return Err("the working tree has changes; commit them first".to_owned());
     }
 
-    bump(&root().join("Cargo.toml"), "version = \"", version)?;
-    bump(&root().join("packaging/arch/PKGBUILD"), "pkgver=", version)?;
-    bump(
-        &root().join("packaging/macos/Info.plist"),
-        "<string>0.",
+    // Four places carry the version, and each is anchored to something that
+    // occurs once, so an unrelated number in the same file is left alone.
+    let bumped = [
+        root().join("Cargo.toml"),
+        root().join("packaging/arch/PKGBUILD"),
+        root().join("packaging/macos/Info.plist"),
+        root().join("assets/ibus/rustmagic.xml"),
+    ];
+    bump_after(
+        &bumped[0],
+        "[workspace.package]",
+        "version = \"",
+        "\"",
         version,
     )?;
-    bump(
-        &root().join("assets/ibus/rustmagic.xml"),
-        "<version>0.",
+    bump_after(&bumped[1], "pkgname=rustmagic", "pkgver=", "\n", version)?;
+    bump_after(
+        &bumped[2],
+        "<key>CFBundleShortVersionString</key>",
+        "<string>",
+        "</string>",
         version,
     )?;
-    println!("version bumped to {version}");
+    bump_all(&bumped[3], "<version>", "</version>", version)?;
+    println!("version is {version}");
+
+    if dry_run {
+        println!("--dry-run: this is what changes, and it has been put back");
+        let _ = Command::new("git")
+            .arg("diff")
+            .arg("--")
+            .args(&bumped)
+            .current_dir(root())
+            .status();
+        let mut restore = vec!["checkout".to_owned(), "--".to_owned()];
+        restore.extend(bumped.iter().map(|path| path.display().to_string()));
+        let restore: Vec<&str> = restore.iter().map(String::as_str).collect();
+        return git(&restore);
+    }
 
     run_task("check")?;
     git(&["add", "-A"])?;
@@ -158,31 +189,56 @@ fn release(version: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
-/// Replaces a version in a file, keeping every other character as it was.
-fn bump(path: &std::path::Path, prefix: &str, version: &str) -> Result<(), String> {
+/// Replaces the value between `open` and `close`, searching only after `anchor`.
+fn bump_after(
+    path: &std::path::Path,
+    anchor: &str,
+    open: &str,
+    close: &str,
+    version: &str,
+) -> Result<(), String> {
     let text = std::fs::read_to_string(path).map_err(|error| error.to_string())?;
-    let mut replaced = 0usize;
+    let Some(anchor_at) = text.find(anchor) else {
+        return Err(format!("no {anchor} in {}", path.display()));
+    };
+    let head = &text[..anchor_at];
+    let tail = &text[anchor_at..];
+    let Some(open_at) = tail.find(open) else {
+        return Err(format!("no {open} after {anchor} in {}", path.display()));
+    };
+    let value_at = open_at + open.len();
+    let Some(close_at) = tail[value_at..].find(close) else {
+        return Err(format!("no {close} after {open} in {}", path.display()));
+    };
+    let changed = format!(
+        "{head}{}{open}{version}{close}{}",
+        &tail[..open_at],
+        &tail[value_at + close_at + close.len()..]
+    );
+    std::fs::write(path, changed).map_err(|error| error.to_string())
+}
+
+/// Replaces the value between every `open` and its following `close`.
+fn bump_all(path: &std::path::Path, open: &str, close: &str, version: &str) -> Result<(), String> {
+    let text = std::fs::read_to_string(path).map_err(|error| error.to_string())?;
     let mut out = String::with_capacity(text.len());
-    for line in text.lines() {
-        let trimmed = line.trim_start();
-        if let Some(rest) = trimmed.strip_prefix(prefix) {
-            let indent = &line[..line.len() - trimmed.len()];
-            out.push_str(indent);
-            out.push_str(prefix);
-            out.push_str(version);
-            // A quoted version keeps its quote; a plist `<version>1.2.3</version>`
-            // line keeps everything from its own closing `<`.
-            if let Some(tail) = rest.find(['"', '<']) {
-                out.push_str(&rest[tail..]);
-            }
-            replaced += 1;
-        } else {
-            out.push_str(line);
-        }
-        out.push('\n');
+    let mut replaced = 0usize;
+    let mut rest = text.as_str();
+    while let Some(open_at) = rest.find(open) {
+        let value_at = open_at + open.len();
+        let Some(close_at) = rest[value_at..].find(close) else {
+            break;
+        };
+        out.push_str(&rest[..open_at]);
+        out.push_str(open);
+        out.push_str(version);
+        out.push_str(close);
+        rest = &rest[value_at + close_at + close.len()..];
+        replaced += 1;
     }
+    out.push_str(rest);
     if replaced == 0 {
-        return Err(format!("nothing to bump in {}", path.display()));
+        return Err(format!("no {open} in {}", path.display()));
     }
     std::fs::write(path, out).map_err(|error| error.to_string())
 }
