@@ -1,0 +1,127 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  gates:
+    name: repository gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: shape, docs and manifests
+        run: python3 tools/check_repo.py
+      - name: commit subjects
+        run: |
+          # Every subject in the push, oldest first, checked by the same script
+          # the commit-msg hook runs.
+          base="${{ github.event.before }}"
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base="$(git rev-list --max-parents=0 HEAD | tail -1)"
+          fi
+          failed=0
+          for sha in $(git rev-list "$base"..HEAD 2>/dev/null || git rev-list HEAD); do
+            subject="$(git log -1 --format=%s "$sha")"
+            printf '%s\n\n' "$subject" | python3 tools/check_commit_msg.py - || failed=1
+          done
+          exit $failed
+
+  test:
+    name: test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: install linux window dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev libwayland-dev \
+            libx11-dev libxi-dev libxcursor-dev libxrandr-dev
+      - name: format
+        if: runner.os == 'Linux'
+        run: cargo fmt --all --check
+      - name: clippy
+        if: runner.os == 'Linux'
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: test
+        run: cargo test --workspace
+
+  abi:
+    name: the C ABI links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: build
+        run: cargo build -p km-ffi --release
+      - name: link a C program against it
+        run: |
+          cat > /tmp/smoke.c <<'EOF'
+          #include <stdio.h>
+          #include <stddef.h>
+
+          typedef struct rm_keyboard rm_keyboard;
+          typedef struct rm_engine rm_engine;
+
+          typedef struct {
+            size_t erase;
+            char *insert;
+            int consumed;
+            int recursion_limit;
+          } rm_edit;
+
+          extern rm_keyboard *rm_keyboard_load(const char *path, char **error);
+          extern void rm_keyboard_free(rm_keyboard *keyboard);
+          extern char *rm_keyboard_name(const rm_keyboard *keyboard);
+          extern rm_engine *rm_engine_new(const rm_keyboard *keyboard);
+          extern void rm_engine_free(rm_engine *engine);
+          extern int rm_engine_key(rm_engine *engine, unsigned short key, unsigned ch,
+                                   int shift, int control, int alt, int alt_gr, int caps,
+                                   rm_edit *out);
+          extern void rm_string_free(char *text);
+          extern const char *rm_version(void);
+
+          int main(void) {
+            char *error = NULL;
+            rm_keyboard *keyboard =
+                rm_keyboard_load("fixtures/basic.km2", &error);
+            if (!keyboard) {
+              fprintf(stderr, "load failed: %s\n", error ? error : "unknown");
+              return 1;
+            }
+            char *name = rm_keyboard_name(keyboard);
+            printf("rustmagic %s loaded %s\n", rm_version(), name);
+            rm_string_free(name);
+
+            rm_engine *engine = rm_engine_new(keyboard);
+            rm_edit edit = {0, NULL, 0, 0};
+            int consumed = rm_engine_key(engine, 'A', 'a', 0, 0, 0, 0, 0, &edit);
+            printf("key consumed=%d insert=%s\n", consumed,
+                   edit.insert ? edit.insert : "(none)");
+            if (edit.insert) rm_string_free(edit.insert);
+            rm_engine_free(engine);
+            rm_keyboard_free(keyboard);
+            return 0;
+          }
+          EOF
+          cargo build -p km-ffi --release
+          cc /tmp/smoke.c -L target/release -lkm_ffi -o /tmp/smoke
+          LD_LIBRARY_PATH=target/release /tmp/smoke
