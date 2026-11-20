@@ -332,4 +332,26 @@ jobs:
               exit 1
             fi
           done
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          notes=$(mktemp)
+          cat <<'TXT' | sed 's/^          //' > "$notes"
+          One engine, four platforms, built from the tag.
+
+          | Platform | Download | What works |
+          | --- | --- | --- |
+          | Linux x86_64 | `rustmagic-<v>-linux-x86_64.tar.gz` | window, CLI, C ABI, **IBus engine** |
+          | Arch Linux | `rustmagic-<v>-<rel>-x86_64.pkg.tar.zst` | the same, installed by pacman; rebuild with the bundled PKGBUILD |
+          | macOS (universal) | `rustmagic-<v>-macos-universal.zip` | window, CLI, C ABI in `RustMagic.app` |
+          | Windows x86_64 | `rustmagic-<v>-windows-x86_64.zip` | window, CLI, C ABI |
+
+          Every archive has a `.sha256` next to it. The macOS app is unsigned:
+          right-click, Open, the first time.
+
+          **Not in this release.** There is no Windows TSF service and no macOS
+          input method yet, so system-wide typing is IBus on Linux only. Nothing
+          is signed or notarised, and no crate is published.
+
+          Details, including how to cut the next one: `docs/RELEASING.md`.
+          TXT
+          sed -i "s/<v>/${TAG#v}/g" "$notes"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false \
+            --title "RustMagic ${TAG#v}" --notes-file "$notes"
