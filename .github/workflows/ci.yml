@@ -99,10 +99,17 @@ jobs:
           bash -n packaging/arch/PKGBUILD
           bash -n packaging/arch/PKGBUILD-git
           bash -n packaging/arch/rustmagic.install
-          # makepkg refuses to run as root, which is what a container gives us.
+          bash -n tools/smoke/ibus.sh
+          # makepkg refuses to run as root, so it gets its own copy instead of
+          # the checkout. Chowning the checkout would break the runner, which
+          # owns files outside the workspace that it must still read.
           useradd -m builder
-          chown -R builder:builder /__w
-          su builder -c "cd $(pwd) && makepkg --printsrcinfo -p packaging/arch/PKGBUILD >/dev/null" || true
+          install -d -o builder -g builder /tmp/pkg
+          cp packaging/arch/PKGBUILD packaging/arch/rustmagic.install /tmp/pkg/
+          chown builder:builder /tmp/pkg/PKGBUILD /tmp/pkg/rustmagic.install
+          su builder -c "cd /tmp/pkg && makepkg --printsrcinfo > .SRCINFO"
+          grep -q '^pkgname = rustmagic$' /tmp/pkg/.SRCINFO
+          grep -q '^depends = ibus$' /tmp/pkg/.SRCINFO
       - name: drive the engine with libibus
         run: dbus-run-session -- tools/smoke/ibus.sh
 
