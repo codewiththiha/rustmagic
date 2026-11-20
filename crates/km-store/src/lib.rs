@@ -1,0 +1,16 @@
+//! Where keyboards and settings live on disk.
+//!
+//! A library is a directory of compiled `.km2` keyboards plus the `.kms`
+//! sources they came from. Writes are atomic: a settings file is written beside
+//! the real one and renamed, so a crash never leaves half a file behind.
+
+#![deny(missing_docs)]
+
+mod library;
+mod settings;
+
+pub use library::{safe_id, Entry, Library};
+pub use settings::{Settings, Theme};
+
+/// File name of the settings file inside the state directory.
+pub const SETTINGS_FILE: &str = "settings.toml";
