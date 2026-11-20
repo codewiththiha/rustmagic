@@ -1,0 +1,260 @@
+#!/usr/bin/env python3
+"""Repository shape rules, checked without compiling anything.
+
+These are the rules that a compiler cannot see but a reviewer always can: where
+`unsafe` is allowed, which way the crate graph points, what a placeholder left
+behind, whether the documents exist. CI runs this first because it is instant.
+
+    python3 tools/check_repo.py          # check
+    python3 tools/check_repo.py --list   # list the rules
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+CRATES = ROOT / "crates"
+APPS = ROOT / "apps"
+
+# The only file that may name `unsafe`: the C ABI, where it is unavoidable.
+UNSAFE_ALLOWED = {"crates/km-ffi/src/lib.rs"}
+
+# A crate may not depend on a crate to its right.
+LAYERS = [
+    ["km-core"],
+    ["km-binary", "km-script"],
+    ["km-engine", "km-store"],
+    ["km-session"],
+    ["km-ffi", "ui-egui"],
+    ["rustmagic", "rustmagic-cli"],
+]
+
+REQUIRED_DOCS = [
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "LICENSE",
+    "docs/ARCHITECTURE.md",
+    "docs/ENGINE_SEMANTICS.md",
+    "docs/PORTING.md",
+    "docs/AGENT_WORKFLOW.md",
+]
+
+PLACEHOLDER = re.compile(r"//!\s*Placeholder\.|fn main\(\) \{\}")
+UNSAFE_USE = re.compile(r"\bunsafe\b")
+
+
+def run(*command: str) -> str:
+    return subprocess.run(
+        command, cwd=ROOT, check=True, capture_output=True, text=True
+    ).stdout
+
+
+def manifests() -> list[Path]:
+    return sorted(CRATES.glob("*/Cargo.toml")) + sorted(APPS.glob("*/Cargo.toml"))
+
+
+def package_name(manifest: Path) -> str:
+    return manifest.parent.name
+
+
+def check_unsafe() -> list[str]:
+    problems = []
+    for path in [*CRATES.rglob("*.rs"), *APPS.rglob("*.rs")]:
+        relative = path.relative_to(ROOT).as_posix()
+        if relative in UNSAFE_ALLOWED:
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            stripped = line.strip()
+            if stripped.startswith("//") or stripped.startswith("///"):
+                continue
+            if UNSAFE_USE.search(line):
+                problems.append(f"{relative}:{number}: `unsafe` outside the C ABI")
+    return problems
+
+
+def check_layers() -> list[str]:
+    rank = {name: index for index, layer in enumerate(LAYERS) for name in layer}
+    problems = []
+    for manifest in manifests():
+        name = package_name(manifest)
+        data = tomllib.loads(manifest.read_text(encoding="utf-8"))
+        for table in ("dependencies", "dev-dependencies"):
+            for dependency in data.get(table, {}):
+                if dependency in rank and rank[dependency] > rank.get(name, 0):
+                    problems.append(
+                        f"{name} depends on {dependency}, which sits above it"
+                    )
+    # The window crate is the top of the graph and may of course have one; every
+    # crate the engine runs through may not.
+    windowed = {"ui-egui", "rustmagic"}
+    for manifest in [*CRATES.glob("*/Cargo.toml"), *APPS.glob("*/Cargo.toml")]:
+        name = package_name(manifest)
+        if name in windowed:
+            continue
+        data = tomllib.loads(manifest.read_text(encoding="utf-8"))
+        deps = set(data.get("dependencies", {}))
+        if {"egui", "eframe"} & deps:
+            problems.append(f"{name} has a window dependency")
+    return problems
+
+
+def check_placeholders() -> list[str]:
+    problems = []
+    for path in [*CRATES.rglob("*.rs"), *APPS.rglob("*.rs"), *ROOT.glob("xtask/src/*.rs")]:
+        text = path.read_text(encoding="utf-8")
+        if PLACEHOLDER.search(text):
+            problems.append(f"{path.relative_to(ROOT).as_posix()}: still a placeholder")
+        code = [
+            line
+            for line in text.splitlines()
+            if line.strip()
+            and not line.strip().startswith(("//", "#[", "/*", "*", "*/"))
+        ]
+        if len(code) < 5:
+            problems.append(
+                f"{path.relative_to(ROOT).as_posix()}: "
+                f"{len(code)} lines of code is a stub"
+            )
+    return problems
+
+
+def check_docs() -> list[str]:
+    problems = []
+    for document in REQUIRED_DOCS:
+        path = ROOT / document
+        if not path.exists():
+            problems.append(f"{document} is missing")
+        elif path.stat().st_size < 400:
+            problems.append(f"{document} is too thin to be useful")
+    agents = ROOT / "AGENTS.md"
+    claude = ROOT / "CLAUDE.md"
+    if agents.exists() and claude.exists():
+        if agents.read_text(encoding="utf-8") != claude.read_text(encoding="utf-8"):
+            problems.append("CLAUDE.md is a copy of AGENTS.md and has drifted")
+    for document in ROOT.glob("docs/*.md"):
+        text = document.read_text(encoding="utf-8")
+        for target in re.findall(r"\]\((?!https?:)([^)#]+)", text):
+            if not (ROOT / "docs").joinpath(target).exists() and not (ROOT / target).exists():
+                problems.append(
+                    f"{document.relative_to(ROOT).as_posix()} links to missing {target}"
+                )
+    return problems
+
+
+def check_manifests() -> list[str]:
+    problems = []
+    for manifest in manifests():
+        data = tomllib.loads(manifest.read_text(encoding="utf-8"))
+        package = data.get("package", {})
+        for field in ("name", "description", "license", "repository"):
+            if field not in package:
+                problems.append(
+                    f"{manifest.relative_to(ROOT).as_posix()}: no `{field}`"
+                )
+        if package.get("publish") is not False:
+            problems.append(
+                f"{manifest.relative_to(ROOT).as_posix()}: must set publish = false"
+            )
+    return problems
+
+
+def check_tools() -> list[str]:
+    problems = []
+    for script in (ROOT / "tools").glob("*.py"):
+        text = script.read_text(encoding="utf-8")
+        if not text.startswith("#!/usr/bin/env python3"):
+            problems.append(f"{script.name} has no shebang")
+        if "def main(" not in text:
+            problems.append(f"{script.name} has no main()")
+    hooks = ROOT / "tools" / "hooks"
+    for hook in hooks.iterdir() if hooks.exists() else []:
+        if not hook.read_text(encoding="utf-8").startswith("#!/bin/sh"):
+            problems.append(f"tools/hooks/{hook.name} is not a shell hook")
+    return problems
+
+
+def check_workspace() -> list[str]:
+    data = tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))
+    members = data["workspace"]["members"]
+    installed = {
+        path.parent.name
+        for path in [*CRATES.glob("*/Cargo.toml"), *APPS.glob("*/Cargo.toml")]
+    }
+    problems = []
+    for member in members:
+        path = ROOT / member
+        if "*" in member:
+            continue
+        if not (path / "Cargo.toml").exists():
+            problems.append(f"workspace member {member} has no manifest")
+        elif path.parent == ROOT and path.name not in installed - set():
+            # Root-level tools such as xtask are checked by their manifest alone.
+            continue
+    lints = data["workspace"]["lints"]["rust"]
+    if lints.get("unsafe_code") == "forbid":
+        problems.append("`forbid(unsafe_code)` cannot be relaxed by km-ffi; use deny")
+    return problems
+
+
+def check_fixtures() -> list[str]:
+    problems = []
+    fixtures = ROOT / "fixtures"
+    if not fixtures.exists():
+        return ["fixtures/ is missing"]
+    for name in ("minimal.kms", "minimal.km2", "basic.kms", "basic.km2"):
+        if not (fixtures / name).exists():
+            problems.append(f"fixtures/{name} is missing")
+    assets = ROOT / "assets" / "keyboards"
+    if not any(assets.glob("*.kms")):
+        problems.append("assets/keyboards has no keyboard to ship")
+    return problems
+
+
+RULES = {
+    "unsafe": check_unsafe,
+    "layers": check_layers,
+    "placeholders": check_placeholders,
+    "docs": check_docs,
+    "manifests": check_manifests,
+    "tools": check_tools,
+    "workspace": check_workspace,
+    "fixtures": check_fixtures,
+}
+
+
+def main(argv: list[str]) -> int:
+    if "--list" in argv:
+        for name in RULES:
+            print(name)
+        return 0
+    if "--json" in argv:
+        report = {name: rule() for name, rule in RULES.items()}
+        print(json.dumps(report, indent=2))
+        return 0 if not any(report.values()) else 1
+
+    failed = 0
+    for name, rule in RULES.items():
+        problems = rule()
+        if problems:
+            failed += len(problems)
+            print(f"✗ {name}")
+            for problem in problems:
+                print(f"    {problem}")
+        else:
+            print(f"✓ {name}")
+    if failed:
+        print(f"\n{failed} problem(s). Fix them before committing.")
+        return 1
+    print("\nthe repository is in shape")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

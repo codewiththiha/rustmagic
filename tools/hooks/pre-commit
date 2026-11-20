@@ -1,0 +1,6 @@
+#!/bin/sh
+# Instant shape checks, then the fast tests. `cargo xtask check` runs the rest.
+set -e
+root="$(git rev-parse --show-toplevel)"
+python3 "$root/tools/check_repo.py"
+cargo test --quiet --workspace --exclude rustmagic
