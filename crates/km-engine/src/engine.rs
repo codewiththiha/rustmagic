@@ -159,11 +159,20 @@ impl Engine {
     ) -> bool {
         let keyboard = Arc::clone(&self.keyboard);
         let tail: Vec<char> = self.state.context.chars().collect();
+        // A rule that only describes characters speaks about characters. When a
+        // real key produced none — backspace, an arrow, a function key — the
+        // rule has nothing to say, and letting it match would swallow the key.
+        // Rules that name a virtual key are unaffected, and so are synthetic
+        // passes through the engine, which have no key at all.
+        let character_only = input.key != 0 && text.is_none();
         for rule in &keyboard.rules {
             if !self.keys_match(rule, input) {
                 continue;
             }
             let keyed = rule.key_count() > 0;
+            if !keyed && character_only {
+                continue;
+            }
             let mut candidate = tail.clone();
             if !keyed {
                 if let Some(char) = text {

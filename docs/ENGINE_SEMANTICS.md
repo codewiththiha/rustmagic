@@ -69,6 +69,12 @@ better. `AltGr` is honoured directly, and additionally when the rule asks for
 `AltGr` and the event carries `control + alt` while `options.right_alt` is set
 (the Windows habit of reporting AltGr that way).
 
+A rule that only describes characters — `$latin[*]`, `ANY`, a literal — matches
+only when the event carries a character. A real key that produced none (backspace,
+an arrow, a function key) is left to the host, so a layout ending in `ANY => $1`
+cannot swallow it. Rules that name a virtual key are unaffected, and so are the
+engine's own recursion passes, which have no key at all.
+
 If the event has a character and no rule matched:
 
 * with `eat` (`EAT_ALL_UNUSED_KEYS`) the key is swallowed;
