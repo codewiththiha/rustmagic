@@ -1,0 +1,9 @@
+/target
+**/*.rs.bk
+Cargo.lock.bak
+*.km2.tmp
+.DS_Store
+.env
+.env.*
+*.pem
+/tmp

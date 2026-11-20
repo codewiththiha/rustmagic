@@ -1,0 +1,69 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/km-core",
+    "crates/km-binary",
+    "crates/km-script",
+    "crates/km-engine",
+    "crates/km-store",
+    "crates/km-session",
+    "crates/km-ffi",
+    "crates/ui-egui",
+    "apps/rustmagic",
+    "apps/rustmagic-cli",
+    "xtask",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+license = "GPL-2.0-or-later"
+repository = "https://github.com/codewiththiha/rustmagic"
+authors = ["RustMagic contributors"]
+
+[workspace.dependencies]
+km-core = { path = "crates/km-core" }
+km-binary = { path = "crates/km-binary" }
+km-script = { path = "crates/km-script" }
+km-engine = { path = "crates/km-engine" }
+km-store = { path = "crates/km-store" }
+km-session = { path = "crates/km-session" }
+ui-egui = { path = "crates/ui-egui" }
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+egui = "0.29"
+eframe = { version = "0.29", default-features = false, features = [
+    "default_fonts",
+    "glow",
+    "wayland",
+    "x11",
+] }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# Style calls the project has already made, so the gate stays honest:
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+doc_markdown = "allow"
+too_many_lines = "allow"
+struct_excessive_bools = "allow"
+cast_precision_loss = "allow"
+unused_self = "allow"
+needless_pass_by_value = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_possible_wrap = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
