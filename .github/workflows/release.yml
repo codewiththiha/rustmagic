@@ -339,7 +339,7 @@ jobs:
           | Platform | Download | What works |
           | --- | --- | --- |
           | Linux x86_64 | `rustmagic-<v>-linux-x86_64.tar.gz` | window, CLI, C ABI, **IBus engine** |
-          | Arch Linux | `rustmagic-<v>-<rel>-x86_64.pkg.tar.zst` | the same, installed by pacman; rebuild with the bundled PKGBUILD |
+          | Arch Linux | `PKGNAME` | the same, installed by pacman; rebuild with the bundled PKGBUILD |
           | macOS (universal) | `rustmagic-<v>-macos-universal.zip` | window, CLI, C ABI in `RustMagic.app` |
           | Windows x86_64 | `rustmagic-<v>-windows-x86_64.zip` | window, CLI, C ABI |
 
@@ -353,5 +353,8 @@ jobs:
           Details, including how to cut the next one: `docs/RELEASING.md`.
           TXT
           sed -i "s/<v>/${TAG#v}/g" "$notes"
+          # The package name carries the pkgrel, so it is read from the upload.
+          pkg=$(echo "$assets" | grep 'pkg\.tar\.zst' | head -1)
+          sed -i "s/PKGNAME/$pkg/" "$notes"
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false \
             --title "RustMagic ${TAG#v}" --notes-file "$notes"
