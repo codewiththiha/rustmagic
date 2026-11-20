@@ -63,6 +63,49 @@ jobs:
       - name: test
         run: cargo test --workspace
 
+  ibus:
+    name: the engine speaks IBus
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: install IBus and its headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ibus libibus-1.0-dev dbus
+      - name: drive the engine with libibus
+        # A private session bus, the engine as a service, and a C client that
+        # decodes every reply with libibus itself.
+        run: dbus-run-session -- tools/smoke/ibus.sh
+
+  arch:
+    name: the Arch package builds
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: install the toolchain
+        run: |
+          pacman -Syu --noconfirm --needed base-devel git rust python dbus ibus
+      - uses: actions/checkout@v4
+      - name: repository gates
+        run: python3 tools/check_repo.py
+      - name: build every binary the package ships
+        run: |
+          cargo build --release --locked \
+            --package rustmagic --package rustmagic-cli --package rustmagic-ibus
+      - name: check the packaging files
+        run: |
+          bash -n packaging/arch/PKGBUILD
+          bash -n packaging/arch/PKGBUILD-git
+          bash -n packaging/arch/rustmagic.install
+          # makepkg refuses to run as root, which is what a container gives us.
+          useradd -m builder
+          chown -R builder:builder /__w
+          su builder -c "cd $(pwd) && makepkg --printsrcinfo -p packaging/arch/PKGBUILD >/dev/null" || true
+      - name: drive the engine with libibus
+        run: dbus-run-session -- tools/smoke/ibus.sh
+
   abi:
     name: the C ABI links
     runs-on: ubuntu-latest
