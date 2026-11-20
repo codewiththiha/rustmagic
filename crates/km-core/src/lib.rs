@@ -18,8 +18,8 @@ mod meta;
 pub use error::{Error, Result};
 pub use input::{KeyInput, Modifiers};
 pub use keys::{
-    canonical_id, is_predefined, predefined_alias, ALIASES, CANONICAL, PREDEFINED_COUNT,
+    ALIASES, CANONICAL, PREDEFINED_COUNT, canonical_id, is_predefined, predefined_alias,
 };
 pub use keys::{predefined_key, predefined_name, predefined_of, vk};
 pub use layout::LayoutOptions;
-pub use meta::{info_id, parse_hotkey, Hotkey, KeyboardMeta};
+pub use meta::{Hotkey, KeyboardMeta, info_id, parse_hotkey};

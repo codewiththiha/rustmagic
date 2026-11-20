@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use km_core::{vk, KeyInput, Modifiers};
+use km_core::{KeyInput, Modifiers, vk};
 
 use crate::keyboard::Keyboard;
 use crate::rule::{Emit, Pattern, Rule};

@@ -16,7 +16,7 @@ mod parser;
 mod token;
 
 pub use ast::{Lhs, Modifier, Program, Rhs, Rule, Statement, Term, VariableDecl};
-pub use compiler::{compile, compile_file, Compiled, Diagnostic, Stats};
+pub use compiler::{Compiled, Diagnostic, Stats, compile, compile_file};
 pub use lexer::tokenize;
 pub use parser::parse;
 pub use token::{Spanned, Token};

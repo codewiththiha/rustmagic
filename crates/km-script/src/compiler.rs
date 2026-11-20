@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use km_binary::{RawKeyboard, RawRule};
-use km_core::{info_id, Error, LayoutOptions, Result};
+use km_core::{Error, LayoutOptions, Result, info_id};
 
 use crate::ast::{Lhs, Modifier, Program, Rhs, Rule as AstRule, Statement, Term, VariableDecl};
 

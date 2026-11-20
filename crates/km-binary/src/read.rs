@@ -4,8 +4,8 @@ use std::path::Path;
 
 use km_core::{Error, LayoutOptions, Result};
 
-use crate::model::{RawKeyboard, RawRule, Version, Warning};
 use crate::MAGIC;
+use crate::model::{RawKeyboard, RawRule, Version, Warning};
 
 /// Reads a keyboard file from disk.
 pub fn read_file(path: impl AsRef<Path>) -> Result<RawKeyboard> {

@@ -18,11 +18,11 @@
 #![allow(unsafe_code)]
 #![allow(non_camel_case_types)]
 
-use std::ffi::{c_char, c_int, CStr, CString};
+use std::ffi::{CStr, CString, c_char, c_int};
 use std::path::Path;
 use std::ptr;
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use km_core::{Error, KeyInput, Modifiers};
 use km_engine::{Engine, Keyboard};
@@ -71,7 +71,7 @@ fn owned_or_empty() -> *mut c_char {
 /// # Safety
 ///
 /// `text` must be a pointer this library returned and must not be freed twice.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_string_free(text: *mut c_char) {
     if !text.is_null() {
         // Reclaim the allocation the library made; `CString` owns it again.
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn rm_string_free(text: *mut c_char) {
 }
 
 /// The library version, as a static string that must not be freed.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn rm_version() -> *const c_char {
     concat!(env!("CARGO_PKG_VERSION"), "\0").as_ptr().cast()
 }
@@ -93,7 +93,7 @@ pub extern "C" fn rm_version() -> *const c_char {
 /// # Safety
 ///
 /// `path` must be a valid NUL-terminated string; `error` may be null.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_keyboard_load(
     path: *const c_char,
     error: *mut *mut c_char,
@@ -117,7 +117,7 @@ pub unsafe extern "C" fn rm_keyboard_load(
 /// # Safety
 ///
 /// `bytes` must point at `len` readable bytes; `error` may be null.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_keyboard_from_bytes(
     bytes: *const u8,
     len: usize,
@@ -143,7 +143,7 @@ pub unsafe extern "C" fn rm_keyboard_from_bytes(
 /// # Safety
 ///
 /// `keyboard` must come from this library and must not be freed twice.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_keyboard_free(keyboard: *mut rm_keyboard) {
     if !keyboard.is_null() {
         drop(unsafe { Box::from_raw(keyboard) });
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn rm_keyboard_free(keyboard: *mut rm_keyboard) {
 /// # Safety
 ///
 /// `keyboard` may be null, in which case an empty string is returned.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_keyboard_name(keyboard: *const rm_keyboard) -> *mut c_char {
     match unsafe { keyboard.as_ref() } {
         Some(keyboard) => owned(&keyboard.keyboard.meta.name),
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn rm_keyboard_name(keyboard: *const rm_keyboard) -> *mut 
 /// # Safety
 ///
 /// `keyboard` may be null.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_keyboard_description(keyboard: *const rm_keyboard) -> *mut c_char {
     match unsafe { keyboard.as_ref() } {
         Some(keyboard) => owned(&keyboard.keyboard.meta.description),
@@ -181,7 +181,7 @@ pub unsafe extern "C" fn rm_keyboard_description(keyboard: *const rm_keyboard) -
 /// # Safety
 ///
 /// `keyboard` may be null.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_keyboard_hotkey(keyboard: *const rm_keyboard) -> *mut c_char {
     match unsafe { keyboard.as_ref() } {
         Some(keyboard) => owned(&keyboard.keyboard.meta.hotkey),
@@ -194,7 +194,7 @@ pub unsafe extern "C" fn rm_keyboard_hotkey(keyboard: *const rm_keyboard) -> *mu
 /// # Safety
 ///
 /// `keyboard` may be null.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_keyboard_rule_count(keyboard: *const rm_keyboard) -> usize {
     unsafe { keyboard.as_ref() }.map_or(0, |keyboard| keyboard.keyboard.rule_count())
 }
@@ -204,7 +204,7 @@ pub unsafe extern "C" fn rm_keyboard_rule_count(keyboard: *const rm_keyboard) ->
 /// # Safety
 ///
 /// `keyboard` must come from this library and must outlive the call.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_engine_new(keyboard: *const rm_keyboard) -> *mut rm_engine {
     let Some(keyboard) = (unsafe { keyboard.as_ref() }) else {
         return ptr::null_mut();
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn rm_engine_new(keyboard: *const rm_keyboard) -> *mut rm_
 /// # Safety
 ///
 /// `engine` must come from this library and must not be freed twice.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_engine_free(engine: *mut rm_engine) {
     if !engine.is_null() {
         drop(unsafe { Box::from_raw(engine) });
@@ -231,7 +231,7 @@ pub unsafe extern "C" fn rm_engine_free(engine: *mut rm_engine) {
 /// # Safety
 ///
 /// `engine` may be null.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_engine_reset(engine: *mut rm_engine) {
     if let Some(engine) = unsafe { engine.as_mut() } {
         engine.engine.reset();
@@ -243,7 +243,7 @@ pub unsafe extern "C" fn rm_engine_reset(engine: *mut rm_engine) {
 /// # Safety
 ///
 /// `text` must be a valid NUL-terminated string; it is copied.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_engine_set_context(engine: *mut rm_engine, text: *const c_char) {
     let (Some(engine), Ok(text)) = (
         (unsafe { engine.as_mut() }),
@@ -259,7 +259,7 @@ pub unsafe extern "C" fn rm_engine_set_context(engine: *mut rm_engine, text: *co
 /// # Safety
 ///
 /// `engine` may be null.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_engine_context(engine: *const rm_engine) -> *mut c_char {
     match unsafe { engine.as_ref() } {
         Some(engine) => owned(engine.engine.context()),
@@ -276,7 +276,7 @@ pub unsafe extern "C" fn rm_engine_context(engine: *const rm_engine) -> *mut c_c
 /// # Safety
 ///
 /// `engine` must come from this library; `out`, when not null, must be writable.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rm_engine_key(
     engine: *mut rm_engine,
     key: u16,

@@ -72,11 +72,7 @@ pub const LIGHT: Palette = Palette {
 
 /// The palette for a mood.
 pub fn palette(dark: bool) -> Palette {
-    if dark {
-        DARK
-    } else {
-        LIGHT
-    }
+    if dark { DARK } else { LIGHT }
 }
 
 /// Whether the window should paint dark right now.

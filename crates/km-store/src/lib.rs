@@ -9,7 +9,7 @@
 mod library;
 mod settings;
 
-pub use library::{safe_id, Entry, Library};
+pub use library::{Entry, Library, safe_id};
 pub use settings::{Settings, Theme};
 
 /// File name of the settings file inside the state directory.

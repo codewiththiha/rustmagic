@@ -25,7 +25,7 @@ use std::sync::{Arc, Mutex};
 use km_session::Session;
 use zbus::object_server::SignalEmitter;
 use zbus::zvariant::{ObjectPath, Value};
-use zbus::{interface, Connection};
+use zbus::{Connection, interface};
 
 use crate::app::EngineApp;
 

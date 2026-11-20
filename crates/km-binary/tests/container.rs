@@ -1,6 +1,6 @@
 //! Container-level tests against files produced by the upstream compiler.
 
-use km_binary::{read, write, RawRule, Version};
+use km_binary::{RawRule, Version, read, write};
 use km_core::LayoutOptions;
 
 const MINIMAL: &[u8] = include_bytes!("../../../fixtures/minimal.km2");

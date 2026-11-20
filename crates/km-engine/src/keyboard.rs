@@ -7,7 +7,7 @@
 use std::path::Path;
 
 use km_binary::{RawKeyboard, RawRule, Version};
-use km_core::{predefined_key, vk, Error, KeyboardMeta, LayoutOptions, Result};
+use km_core::{Error, KeyboardMeta, LayoutOptions, Result, predefined_key, vk};
 
 use crate::rule::{Emit, KeyRequirement, Pattern, Rule};
 

@@ -77,11 +77,7 @@ impl EngineApp {
         if let Some(engine) = self.engine.as_mut() {
             engine.reset();
         }
-        if text.is_empty() {
-            None
-        } else {
-            Some(text)
-        }
+        if text.is_empty() { None } else { Some(text) }
     }
 
     /// Commits and starts over, which is what focus loss and Escape do.

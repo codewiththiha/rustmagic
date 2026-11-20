@@ -18,5 +18,5 @@ pub use command::{Command, CommandSpec, SPECS};
 pub use event::{Event, ToastKind};
 pub use host::{HeadlessHost, Host};
 pub use probe::{KeyCap, KeyRow, ROWS};
-pub use sandbox::{KeyEntry, Sandbox, LOG_LIMIT};
+pub use sandbox::{KeyEntry, LOG_LIMIT, Sandbox};
 pub use session::{Active, Route, Session};

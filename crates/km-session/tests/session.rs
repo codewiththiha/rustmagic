@@ -118,9 +118,11 @@ fn commands_by_id_reach_the_same_state() {
         .execute_id("appearance.theme", &[("theme", "dark")])
         .expect("theme works");
     assert_eq!(session.settings().theme, Theme::Dark);
-    assert!(session
-        .execute_id("view.route", &[("route", "nope")])
-        .is_err());
+    assert!(
+        session
+            .execute_id("view.route", &[("route", "nope")])
+            .is_err()
+    );
     assert!(session.execute_id::<&str>("nope.nope", &[]).is_err());
 }
 

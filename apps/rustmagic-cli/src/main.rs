@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use km_core::Modifiers;
-use km_session::{Command, HeadlessHost, Session, SPECS};
+use km_session::{Command, HeadlessHost, SPECS, Session};
 
 const USAGE: &str = "\
 rustmagic-cli — the RustMagic front end for terminals

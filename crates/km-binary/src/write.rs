@@ -4,8 +4,8 @@ use std::path::Path;
 
 use km_core::{Error, Result};
 
-use crate::model::RawKeyboard;
 use crate::MAGIC;
+use crate::model::RawKeyboard;
 
 /// Largest table the format can declare: lengths are signed 16-bit.
 pub const MAX_UNITS: usize = i16::MAX as usize;

@@ -21,6 +21,6 @@ mod engine;
 mod keyboard;
 mod rule;
 
-pub use engine::{Edit, Engine, Outcome, MAX_RECURSION};
+pub use engine::{Edit, Engine, MAX_RECURSION, Outcome};
 pub use keyboard::Keyboard;
 pub use rule::{Emit, KeyRequirement, Pattern, Rule};

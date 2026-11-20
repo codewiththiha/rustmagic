@@ -17,6 +17,6 @@ mod service;
 mod text;
 
 pub use app::{EngineApp, Output};
-pub use keymap::{is_pure_modifier, is_terminator, map, Mapped};
-pub use service::{serve, EngineService, Factory, ENGINE_PATH, FACTORY_PATH};
+pub use keymap::{Mapped, is_pure_modifier, is_terminator, map};
+pub use service::{ENGINE_PATH, EngineService, FACTORY_PATH, Factory, serve};
 pub use text::text;
