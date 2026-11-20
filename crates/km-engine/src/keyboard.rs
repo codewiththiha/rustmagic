@@ -173,7 +173,7 @@ fn decode_rule(raw: &RawRule, variables: &[String], warnings: &mut Vec<String>) 
                 let id = raw.lhs.get(cursor).copied().unwrap_or(0);
                 cursor += 1;
                 if let Some(key) = predefined_key(id) {
-                    patterns.push(Pattern::Text(character(key)))
+                    patterns.push(Pattern::Text(character(key)));
                 } else {
                     warnings.push(format!(
                         "rule {} matches on a key that emits nothing; it consumes no text",
