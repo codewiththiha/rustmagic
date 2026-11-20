@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 /// Platform capabilities the session asks for.
-pub trait Host {
+pub trait Host: Send {
     /// Where settings and the keyboard library live.
     fn state_dir(&self) -> PathBuf;
     /// Where throwaway files may go.

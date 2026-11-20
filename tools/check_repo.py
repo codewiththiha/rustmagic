@@ -31,8 +31,8 @@ LAYERS = [
     ["km-binary", "km-script"],
     ["km-engine", "km-store"],
     ["km-session"],
-    ["km-ffi", "ui-egui"],
-    ["rustmagic", "rustmagic-cli"],
+    ["km-ffi", "ui-egui", "km-ibus"],
+    ["rustmagic", "rustmagic-cli", "rustmagic-ibus"],
 ]
 
 REQUIRED_DOCS = [
@@ -44,6 +44,7 @@ REQUIRED_DOCS = [
     "docs/ENGINE_SEMANTICS.md",
     "docs/PORTING.md",
     "docs/AGENT_WORKFLOW.md",
+    "docs/LINUX.md",
 ]
 
 PLACEHOLDER = re.compile(r"//!\s*Placeholder\.|fn main\(\) \{\}")
@@ -217,6 +218,42 @@ def check_fixtures() -> list[str]:
     return problems
 
 
+def check_assets() -> list[str]:
+    """The files a desktop reads, checked for the mistakes a desktop would hit."""
+    problems = []
+    try:
+        import xml.dom.minidom
+
+        for document in (ROOT / "assets").rglob("*.xml"):
+            try:
+                xml.dom.minidom.parse(str(document))
+            except Exception as error:  # noqa: BLE001 - the message is the point
+                problems.append(f"{document.relative_to(ROOT).as_posix()}: {error}")
+    except ImportError:  # pragma: no cover - python always ships minidom
+        pass
+    component = ROOT / "assets" / "ibus" / "rustmagic.xml"
+    if not component.exists():
+        problems.append("assets/ibus/rustmagic.xml is missing; IBus cannot find us")
+    else:
+        text = component.read_text(encoding="utf-8")
+        for required in ("<engines>", "<exec>", "<name>rustmagic</name>"):
+            if required not in text:
+                problems.append(f"assets/ibus/rustmagic.xml has no {required}")
+    for name in ("rustmagic.desktop", "rustmagic.svg", "rustmagic-ibus.svg"):
+        if not (ROOT / "packaging" / "linux" / name).exists():
+            problems.append(f"packaging/linux/{name} is missing")
+    for name in ("PKGBUILD", "rustmagic.install"):
+        if not (ROOT / "packaging" / "arch" / name).exists():
+            problems.append(f"packaging/arch/{name} is missing")
+    desktop = ROOT / "packaging" / "linux" / "rustmagic.desktop"
+    if desktop.exists():
+        text = desktop.read_text(encoding="utf-8")
+        for required in ("[Desktop Entry]", "Exec=", "Icon=", "Categories="):
+            if required not in text:
+                problems.append(f"packaging/linux/rustmagic.desktop has no {required}")
+    return problems
+
+
 RULES = {
     "unsafe": check_unsafe,
     "layers": check_layers,
@@ -226,6 +263,7 @@ RULES = {
     "tools": check_tools,
     "workspace": check_workspace,
     "fixtures": check_fixtures,
+    "assets": check_assets,
 }
 
 

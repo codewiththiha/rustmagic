@@ -1,0 +1,18 @@
+[package]
+name = "rustmagic-ibus"
+description = "The RustMagic IBus engine process"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+km-ibus = { workspace = true }
+km-session = { workspace = true }
+async-io = { workspace = true }
+
+[lints]
+workspace = true

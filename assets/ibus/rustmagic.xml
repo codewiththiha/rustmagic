@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    How IBus learns that RustMagic exists.
+
+    Installed to /usr/share/ibus/component/rustmagic.xml (or
+    ~/.config/ibus/component/ for a per-user install). IBus reads this file at
+    startup, shows the engine in the input-method menu, and starts the program in
+    <exec> when the user selects it, passing the IBus service flag.
+
+    The <name> is the bus name the engine requests, so it must match
+    BUS_NAME in apps/rustmagic-ibus/src/main.rs.
+-->
+<component>
+    <name>org.freedesktop.IBus.RustMagic</name>
+    <description>RustMagic input method</description>
+    <exec>/usr/bin/rustmagic-ibus --ibus</exec>
+    <version>0.1.0</version>
+    <author>RustMagic contributors</author>
+    <license>GPL-2.0-or-later</license>
+    <homepage>https://github.com/codewiththiha/rustmagic</homepage>
+    <textdomain>rustmagic</textdomain>
+
+    <engines>
+        <engine>
+            <name>rustmagic</name>
+            <language>my</language>
+            <license>GPL-2.0-or-later</license>
+            <author>RustMagic contributors</author>
+            <icon>rustmagic</icon>
+            <layout>us</layout>
+            <layout_variant></layout_variant>
+            <layout_option></layout_option>
+            <longname>RustMagic</longname>
+            <description>Keyboard layouts compiled from KeyMagic sources</description>
+            <rank>50</rank>
+            <symbol>⌨</symbol>
+            <setup>/usr/bin/rustmagic</setup>
+            <version>0.1.0</version>
+            <textdomain>rustmagic</textdomain>
+        </engine>
+    </engines>
+</component>
