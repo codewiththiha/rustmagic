@@ -113,3 +113,46 @@ fn what_the_bundled_keyboards_type() {
     // build where nothing above needs it.
     let _ = Modifiers::default();
 }
+
+/// Renders a rule side: characters where they are characters, opcodes in
+/// brackets where they are not, so a variable reference is visible as itself.
+fn side(words: &[u16]) -> String {
+    let mut out = String::new();
+    for word in words {
+        match char::from_u32(u32::from(*word)) {
+            Some(character) if !character.is_control() => out.push(character),
+            _ => {
+                let _ = write!(out, "[{word:04X}]");
+            }
+        }
+    }
+    out
+}
+
+#[test]
+#[ignore = "prints the rules for one vowel; run with --ignored --nocapture"]
+fn what_pyidaungsu_says_about_the_vowel_e() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../keyboards/bundled/pyidaungsu-mm.km2");
+    let bytes = std::fs::read(&path).expect("a bundled keyboard is readable");
+    let raw = km_binary::read(&bytes).expect("a bundled keyboard decodes");
+
+    println!("\n=== pyidaungsu-mm, variables");
+    for (index, string) in raw.strings.iter().enumerate() {
+        println!("  ${index} = {}", side(string));
+    }
+
+    println!("\n=== rules that produce U+1031 (ေ) or U+200C");
+    for rule in &raw.rules {
+        let produces = rule.rhs.contains(&0x1031) || rule.rhs.contains(&0x200C);
+        if !produces {
+            continue;
+        }
+        println!(
+            "  #{} : {:>3} <- {}",
+            rule.index,
+            side(&rule.rhs),
+            side(&rule.lhs)
+        );
+    }
+}
