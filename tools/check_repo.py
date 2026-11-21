@@ -230,6 +230,24 @@ def check_release() -> list[str]:
                 # fails at `makepkg -si`, which is how a user finds out.
                 if not (pkgbuild.parent / script).exists():
                     problems.append(f"PKGBUILD installs {script}, which is not beside it")
+    workspace = ROOT / "Cargo.toml"
+    if workspace.exists():
+        try:
+            manifest = tomllib.loads(workspace.read_text(encoding="utf-8"))["workspace"]
+        except Exception as error:  # noqa: BLE001 - any parse failure is the problem
+            problems.append(f"Cargo.toml does not parse: {error}")
+        else:
+            version = manifest.get("package", {}).get("version")
+            for name, spec in manifest.get("dependencies", {}).items():
+                if not isinstance(spec, dict) or "path" not in spec:
+                    continue
+                # A member pinned to the version before this one cannot be
+                # resolved, so the release bump has to move both.
+                if spec.get("version") not in (None, version):
+                    problems.append(
+                        f"Cargo.toml pins {name} to {spec['version']}, "
+                        f"but the workspace is at {version}"
+                    )
     example = ROOT / "tools" / "smoke" / "abi.c"
     if not example.exists():
         problems.append("tools/smoke/abi.c is missing")

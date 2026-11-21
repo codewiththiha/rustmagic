@@ -132,8 +132,8 @@ fn release(args: &[String]) -> Result<(), String> {
         return Err("the working tree has changes; commit them first".to_owned());
     }
 
-    // Four places carry the version, and each is anchored to something that
-    // occurs once, so an unrelated number in the same file is left alone.
+    // Four files carry the version, and each place is anchored to something
+    // that occurs once, so an unrelated number in the same file is left alone.
     let bumped = [
         root().join("Cargo.toml"),
         root().join("packaging/arch/PKGBUILD"),
@@ -156,6 +156,14 @@ fn release(args: &[String]) -> Result<(), String> {
         version,
     )?;
     bump_all(&bumped[3], "<version>", "</version>", version)?;
+    // The member crates are pinned in `[workspace.dependencies]` as well, so a
+    // version that moves only in `[workspace.package]` leaves the workspace
+    // asking for a release the path crates no longer are, and every build after
+    // the bump stops on it.
+    for name in ["km-core", "km-binary", "km-script", "km-engine"] {
+        let anchor = format!("{name} = {{ version = \"");
+        bump_after(&bumped[0], &anchor, &anchor, "\"", version)?;
+    }
     println!("version is {version}");
 
     if dry_run {
