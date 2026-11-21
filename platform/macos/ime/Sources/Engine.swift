@@ -55,6 +55,49 @@ final class Engine {
         return nil
     }
 
+    /// Every keyboard this input method can offer: the ones the window manages,
+    /// then the ones inside the bundle. The bundle's five are always there, so a
+    /// fresh install has something to type with before the window ever runs.
+    static func installedKeyboards() -> [(id: String, url: URL)] {
+        var found: [(id: String, url: URL)] = []
+        var seen = Set<String>()
+        var folders: [URL] = [stateDirectory.appendingPathComponent("keyboards")]
+        if let resources = Bundle.main.resourceURL {
+            folders.append(resources.appendingPathComponent("keyboards"))
+        }
+        for folder in folders {
+            guard let names = try? FileManager.default
+                .contentsOfDirectory(atPath: folder.path) else { continue }
+            for name in names.sorted() where name.hasSuffix(".km2") {
+                let id = String(name.dropLast(4))
+                guard seen.insert(id).inserted else { continue }
+                found.append((id, folder.appendingPathComponent(name)))
+            }
+        }
+        return found
+    }
+
+    /// Records the choice where the window will read it, so switching in the
+    /// input menu is not a second, private setting.
+    static func setActive(id: String) {
+        let state = stateDirectory
+        let file = state.appendingPathComponent("settings.toml")
+        try? FileManager.default.createDirectory(at: state, withIntermediateDirectories: true)
+        var lines = (try? String(contentsOf: file, encoding: .utf8))?
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map(String.init) ?? []
+        let entry = "active = \"\(id)\""
+        if let index = lines.firstIndex(where: {
+            $0.trimmingCharacters(in: .whitespaces).hasPrefix("active")
+        }) {
+            lines[index] = entry
+        } else {
+            lines.append(entry)
+        }
+        try? (lines.joined(separator: "\n") + "\n")
+            .write(to: file, atomically: true, encoding: .utf8)
+    }
+
     /// `active = "my-win"` in settings.toml. The window writes that file and
     /// this reads the one key it needs, so a hand-edited file cannot crash the
     /// input method.
@@ -97,6 +140,14 @@ final class Engine {
             unload()
             return false
         }
+        return load(path)
+    }
+
+    /// Loads one particular keyboard, whether the window chose it or the input
+    /// menu did. Switching in the menu is a switch in the window too, because
+    /// both read the same file.
+    @discardableResult
+    func load(_ path: URL) -> Bool {
         if path.path == loadedPath, engine != nil {
             return true
         }

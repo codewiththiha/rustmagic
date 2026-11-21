@@ -62,6 +62,13 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: test
         run: cargo test --workspace
+      - name: what the bundled keyboards type
+        # Ignored by default because it asserts nothing: it prints which key
+        # produces which letter, and every short sequence that produces an
+        # invisible character, so a difference from KeyMagic has somewhere to be
+        # looked for.
+        if: runner.os == 'Linux'
+        run: cargo test -p km-engine --test diagnostics -- --ignored --nocapture
 
   ibus:
     name: the engine speaks IBus
@@ -317,6 +324,22 @@ jobs:
           # user can switch it on is checked hard here; INSTALL.txt says to run
           # the same test with the flag on a desktop to prove the switch itself.
           ./build/tis-smoke
+      - name: the bundle installs itself
+        # The same code the window calls: --install copies the bundle into
+        # ~/Library/Input Methods, registers it, and prints the step that is the
+        # user's. Run from the build tree, so it is the copy that moves.
+        run: |
+          set -eu
+          app=build/macos/RustMagicIME.app
+          rm -rf "$HOME/Library/Input Methods/RustMagicIME.app"
+          "$app/Contents/MacOS/RustMagicIME" --version
+          "$app/Contents/MacOS/RustMagicIME" --status | grep -qx 'not installed'
+          "$app/Contents/MacOS/RustMagicIME" --install
+          "$app/Contents/MacOS/RustMagicIME" --status | grep -qx 'installed'
+          test -x "$HOME/Library/Input Methods/RustMagicIME.app/Contents/MacOS/RustMagicIME"
+          # The installed copy is a whole bundle, not a folder of files.
+          codesign --verify --deep --strict "$HOME/Library/Input Methods/RustMagicIME.app"
+          "$app/Contents/MacOS/RustMagicIME" --instructions | grep -q 'Input Sources'
       - name: it unloads when removed
         run: |
           set -eu

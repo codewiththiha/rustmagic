@@ -44,6 +44,10 @@
 	<string>RustMagic_1_Connection</string>
 	<key>InputMethodServerControllerClass</key>
 	<string>RustMagicInputController</string>
+	<!-- The same class answers for the server; an input method has no other
+	     delegate, and naming one keeps IMK from looking for a default. -->
+	<key>InputMethodServerDelegateClass</key>
+	<string>RustMagicInputController</string>
 	<!-- What this input method writes, and the language it is intended for.
 	     The repertoire is the script the keyboards produce, so macOS offers it
 	     for Burmese text fields and lists it under Burmese in Input Sources. -->
@@ -53,6 +57,8 @@
 	</array>
 	<key>TISIntendedLanguage</key>
 	<string>my</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSSupportsAutomaticTermination</key>

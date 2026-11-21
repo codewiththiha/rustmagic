@@ -289,6 +289,11 @@ jobs:
             esac
           done
           install -m755 "$out/bin/rustmagic" "$app/MacOS/RustMagic"
+          # The input method also rides inside the application, so "Set up the
+          # input method" in the window still works after the .dmg is gone. It is
+          # copied before the signing step below, so --deep signs it too.
+          mkdir -p "$app/Resources/Input Methods"
+          cp -R "dist/ime/RustMagicIME.app" "$app/Resources/Input Methods/"
           install -m644 packaging/macos/Info.plist "$app/Info.plist"
           printf 'APPL????' > "$app/PkgInfo"
           install -m644 crates/km-ffi/include/rustmagic.h "$out/lib/"
