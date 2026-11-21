@@ -144,11 +144,10 @@ fn what_pyidaungsu_says_about_the_vowel_e() {
             km_engine::Emit::Text(text) => {
                 text.contains('ေ') || text.chars().any(|c| FURNITURE.contains(&c))
             }
-            km_engine::Emit::Reference(_) => false,
+            km_engine::Emit::Reference(_) | km_engine::Emit::Switch(_) => false,
             km_engine::Emit::Indexed { table, .. } => {
                 table.contains('ေ') || table.chars().any(|c| FURNITURE.contains(&c))
             }
-            km_engine::Emit::Switch(_) => false,
         });
         if interesting {
             println!("  #{} {} => {:?}", rule.index, rule.describe(), rule.emits);
