@@ -63,10 +63,13 @@ final class Engine {
             return nil
         }
         for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            /* Substring is not a String: trimming, which the settings file needs
+             * because the window writes `active = "id"` with spaces, is a String
+             * method. */
+            let trimmed = String(line).trimmingCharacters(in: .whitespaces)
             guard trimmed.hasPrefix("active") else { continue }
             guard let equals = trimmed.firstIndex(of: "=") else { continue }
-            let value = trimmed[trimmed.index(after: equals)...]
+            let value = String(trimmed[trimmed.index(after: equals)...])
                 .trimmingCharacters(in: .whitespaces)
             if value.hasPrefix("\""), value.hasSuffix("\""), value.count >= 2 {
                 return String(value.dropFirst().dropLast())

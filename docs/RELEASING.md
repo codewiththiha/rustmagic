@@ -189,6 +189,12 @@ than a preview window with a layout in it:
   and drives marked text through the client. The .dmg carries the bundle and a
   one-line script that installs it into `~/Library/Input Methods`.
 
+Two of KeyMagic's behaviours are not in them yet, and are named here rather than
+left to be found: a keyboard's own hotkey (the `Ctrl+Shift+M` in the metadata of
+`my-win`, for instance) is not registered as a TSF preserved key or a macOS
+global hotkey, so switching layouts is done in the RustMagic window; and neither
+service draws a HUD or a tray indicator of its own.
+
 The CI jobs named "the keyboard speaks TSF" and "the keyboard speaks
 InputMethodKit" build them and then ask the operating system, not the source
 tree, whether they are real: the Windows job checks the `InprocServer32` path,
