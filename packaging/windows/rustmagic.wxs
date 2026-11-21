@@ -44,57 +44,57 @@
     </Directory>
 
     <DirectoryRef Id="INSTALLFOLDER">
-      <Component Id="MainExecutable" Guid="*">
+      <Component Id="MainExecutable" Guid="*" Win64="yes">
         <File Id="RustMagicExe" Source="dist\windows\rustmagic.exe" KeyPath="yes" />
       </Component>
-      <Component Id="CommandLine" Guid="*">
+      <Component Id="CommandLine" Guid="*" Win64="yes">
         <File Id="RustMagicCliExe" Source="dist\windows\rustmagic-cli.exe" KeyPath="yes" />
         <Environment Id="PathEntry" Name="PATH" Value="[INSTALLFOLDER]" Part="last"
                      Action="set" Permanent="no" System="yes" />
       </Component>
-      <Component Id="CEngine" Guid="*">
+      <Component Id="CEngine" Guid="*" Win64="yes">
         <File Id="KmFfiDll" Source="dist\windows\km_ffi.dll" KeyPath="yes" />
       </Component>
-      <Component Id="CTextService" Guid="*">
+      <Component Id="CTextService" Guid="*" Win64="yes">
         <File Id="RustMagicTSFDll" Source="dist\windows\RustMagicTSF.dll" KeyPath="yes" />
       </Component>
-      <Component Id="CEngineHeader" Guid="*">
+      <Component Id="CEngineHeader" Guid="*" Win64="yes">
         <File Id="RustMagicHeader" Source="dist\windows\rustmagic.h" KeyPath="yes" />
       </Component>
       <!-- One file per component: a generated guid (`*`) is only allowed when the
            keypath is the only file, or when the keypath is versioned and the rest
            are not. These files are neither, so they are separate components. -->
-      <Component Id="CDocumentation" Guid="*">
+      <Component Id="CDocumentation" Guid="*" Win64="yes">
         <File Id="Readme" Source="dist\windows\README.md" KeyPath="yes" />
       </Component>
-      <Component Id="CLicence" Guid="*">
+      <Component Id="CLicence" Guid="*" Win64="yes">
         <File Id="Licence" Source="dist\windows\LICENSE" KeyPath="yes" />
       </Component>
-      <Component Id="CFontLicence" Guid="*">
+      <Component Id="CFontLicence" Guid="*" Win64="yes">
         <File Id="FontLicence" Source="dist\windows\OFL-NotoSansMyanmar.txt" KeyPath="yes" />
       </Component>
     </DirectoryRef>
 
     <DirectoryRef Id="KeyboardsFolder">
-      <Component Id="KbPyidaungsu" Guid="*">
+      <Component Id="KbPyidaungsu" Guid="*" Win64="yes">
         <File Id="FilePyidaungsu" Source="dist\windows\keyboards\pyidaungsu-mm.km2" KeyPath="yes" />
       </Component>
-      <Component Id="KbMyWin" Guid="*">
+      <Component Id="KbMyWin" Guid="*" Win64="yes">
         <File Id="FileMyWin" Source="dist\windows\keyboards\my-win.km2" KeyPath="yes" />
       </Component>
-      <Component Id="KbMyanSan" Guid="*">
+      <Component Id="KbMyanSan" Guid="*" Win64="yes">
         <File Id="FileMyanSan" Source="dist\windows\keyboards\myansan.km2" KeyPath="yes" />
       </Component>
-      <Component Id="KbZawgyi" Guid="*">
+      <Component Id="KbZawgyi" Guid="*" Win64="yes">
         <File Id="FileZawgyi" Source="dist\windows\keyboards\zawgyi.km2" KeyPath="yes" />
       </Component>
-      <Component Id="KbZawCode" Guid="*">
+      <Component Id="KbZawCode" Guid="*" Win64="yes">
         <File Id="FileZawCode" Source="dist\windows\keyboards\zawcode.km2" KeyPath="yes" />
       </Component>
     </DirectoryRef>
 
     <DirectoryRef Id="ApplicationProgramsFolder">
-      <Component Id="StartMenuShortcut" Guid="*">
+      <Component Id="StartMenuShortcut" Guid="*" Win64="yes">
         <Shortcut Id="StartMenuShortcut" Name="RustMagic"
                   Description="Keyboard layout engine"
                   Target="[INSTALLFOLDER]rustmagic.exe"
@@ -106,7 +106,7 @@
     </DirectoryRef>
 
     <DirectoryRef Id="DesktopFolder">
-      <Component Id="DesktopShortcut" Guid="*">
+      <Component Id="DesktopShortcut" Guid="*" Win64="yes">
         <Shortcut Id="DesktopShortcut" Name="RustMagic"
                   Description="Keyboard layout engine"
                   Target="[INSTALLFOLDER]rustmagic.exe"
