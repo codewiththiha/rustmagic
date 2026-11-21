@@ -266,10 +266,26 @@ def check_manifests() -> list[str]:
                 problems.append(
                     f"{manifest.relative_to(ROOT).as_posix()}: no `{field}`"
                 )
-        if package.get("publish") is not False:
+        # The engine is published to crates.io; everything that carries the app
+        # (its keyboard library, its D-Bus service, its window) must not be, or a
+        # stranger could depend on a layout that only exists on a desktop.
+        published = package.get("name") in PUBLISHED_CRATES
+        if published and "publish" in package:
+            problems.append(
+                f"{manifest.relative_to(ROOT).as_posix()}: "
+                f"{package.get('name')} is published, so it must not set publish = false"
+            )
+        if not published and package.get("publish") is not False:
             problems.append(
                 f"{manifest.relative_to(ROOT).as_posix()}: must set publish = false"
             )
+        if published:
+            for field in ("keywords", "categories"):
+                if field not in package:
+                    problems.append(
+                        f"{manifest.relative_to(ROOT).as_posix()}: "
+                        f"{package.get('name')} is published, so it needs `{field}`"
+                    )
     return problems
 
 
@@ -349,6 +365,9 @@ def check_assets() -> list[str]:
     for name in ("rustmagic.desktop", "rustmagic.svg", "rustmagic-ibus.svg"):
         if not (ROOT / "packaging" / "linux" / name).exists():
             problems.append(f"packaging/linux/{name} is missing")
+    for name in ("linux.py", "icons.sh", "dmg.sh", "check_icon.py", "sign.sh"):
+        if not (ROOT / "tools" / "package" / name).exists():
+            problems.append(f"tools/package/{name} is missing")
     for name in ("PKGBUILD", "rustmagic.install"):
         if not (ROOT / "packaging" / "arch" / name).exists():
             problems.append(f"packaging/arch/{name} is missing")
@@ -402,6 +421,10 @@ def check_icon_set() -> list[str]:
     elif not (fonts / "OFL.txt").exists():
         problems.append("assets/fonts/OFL.txt is missing; the font cannot ship without it")
     return problems
+
+
+# Kept in step with tools/publish_crates.py, which is what actually uploads.
+PUBLISHED_CRATES = ("km-core", "km-binary", "km-script", "km-engine", "km-ffi")
 
 
 RULES = {

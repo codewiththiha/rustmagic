@@ -5,13 +5,22 @@
 
 Produces, in `dist/`:
 
-    rustmagic-<v>-linux-x86_64.tar.gz          portable tree, unpack anywhere
-    rustmagic-<v>-linux-x86_64.tar.gz.sha256
-    rustmagic_<v>_amd64.deb                    installs with apt, dpkg or gdebi
+    rustmagic-<v>-linux-<arch>.tar.gz          portable tree, unpack anywhere
+    rustmagic-<v>-linux-<arch>.tar.gz.sha256
+    rustmagic_<v>_<debarch>.deb                installs with apt, dpkg or gdebi
 
 Both come from one staging function, so the tarball and the package can never
 disagree about what exists. Run it after `cargo build --release -p rustmagic
 -p rustmagic-cli -p rustmagic-ibus -p km-ffi`.
+
+`--arch` names the architecture of the binaries, not of this machine, so the
+same script packages a cross build that was compiled under `target/<triple>`:
+
+    python3 tools/package/linux.py --version 0.2.0 \
+        --bin-dir target/aarch64-unknown-linux-gnu/release --arch aarch64
+
+A musl build gets `--flavour musl`, which lands in the file names so a static
+tarball and a glibc package of the same architecture cannot be confused.
 """
 
 from __future__ import annotations
@@ -28,6 +37,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 BINARIES = ("rustmagic", "rustmagic-cli", "rustmagic-ibus")
+
+# uname-style architecture to the name Debian uses in `Architecture:`.
+DEB_ARCH = {"x86_64": "amd64", "aarch64": "arm64", "i686": "i386"}
 KEYBOARDS = "keyboards/bundled"
 DOCUMENTS = ("README.md", "LICENSE", "docs/LINUX.md")
 
@@ -51,7 +63,18 @@ DEB_FALLBACK_DEPENDS = (
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", required=True)
-    parser.add_argument("--bin-dir", default="target/release")
+    parser.add_argument(
+        "--bin-dir",
+        default="target/release",
+        help="where the compiled binaries are, e.g. target/<triple>/release",
+    )
+    parser.add_argument("--arch", default="x86_64", help="architecture of those binaries")
+    parser.add_argument(
+        "--flavour", default="", help="qualifier for the file names, e.g. musl"
+    )
+    parser.add_argument(
+        "--no-deb", action="store_true", help="tarball only, for a libc the .deb cannot describe"
+    )
     parser.add_argument("--out", default="dist")
     parser.add_argument("--maintainer", default="RustMagic contributors <noreply@rustmagic.invalid>")
     arguments = parser.parse_args(argv)
@@ -60,7 +83,8 @@ def main(argv: list[str]) -> int:
     binaries = ROOT / arguments.bin_dir
     out = ROOT / arguments.out
     out.mkdir(parents=True, exist_ok=True)
-    name = f"rustmagic-{version}-linux-x86_64"
+    suggestion = f"-{arguments.flavour}" if arguments.flavour else ""
+    name = f"rustmagic-{version}-linux-{arguments.arch}{suggestion}"
 
     portable = out / name
     shutil.rmtree(portable, ignore_errors=True)
@@ -74,8 +98,14 @@ def main(argv: list[str]) -> int:
     (out / f"{name}.tar.gz.sha256").write_text(f"{digest}  {tarball.name}\n")
     print(f"{tarball.relative_to(ROOT)}  {tarball.stat().st_size} bytes")
 
-    deb = out / f"rustmagic_{version}_amd64.deb"
-    build_deb(out / "deb", binaries, version, arguments.maintainer, deb)
+    if arguments.no_deb:
+        return 0
+    deb_arch = DEB_ARCH.get(arguments.arch)
+    if deb_arch is None:
+        print(f"no Debian architecture known for {arguments.arch}", file=sys.stderr)
+        return 2
+    deb = out / f"rustmagic_{version}_{deb_arch}.deb"
+    build_deb(out / "deb", binaries, version, arguments.maintainer, deb, deb_arch)
     print(f"{deb.relative_to(ROOT)}  {deb.stat().st_size} bytes")
     return 0
 
@@ -150,7 +180,9 @@ details if nothing appears.
     )
 
 
-def fill_debian(tree: Path, binaries: Path, version: str, maintainer: str) -> None:
+def fill_debian(
+    tree: Path, binaries: Path, version: str, maintainer: str, deb_arch: str = "amd64"
+) -> None:
     """The same files in the layout Debian expects, plus `DEBIAN/control`."""
     shutil.rmtree(tree, ignore_errors=True)
     fill_portable(tree, binaries, version)
@@ -186,7 +218,7 @@ def fill_debian(tree: Path, binaries: Path, version: str, maintainer: str) -> No
     (control / "control").write_text(
         f"""Package: rustmagic
 Version: {version}
-Architecture: amd64
+Architecture: {deb_arch}
 Maintainer: {maintainer}
 Installed-Size: {installed_size(tree)}
 Depends: {', '.join(depends)}
@@ -269,8 +301,15 @@ def deb_depends(tree: Path) -> list[str]:
     return found
 
 
-def build_deb(tree: Path, binaries: Path, version: str, maintainer: str, out: Path) -> None:
-    fill_debian(tree, binaries, version, maintainer)
+def build_deb(
+    tree: Path,
+    binaries: Path,
+    version: str,
+    maintainer: str,
+    out: Path,
+    deb_arch: str = "amd64",
+) -> None:
+    fill_debian(tree, binaries, version, maintainer, deb_arch)
     subprocess.run(
         [
             "dpkg-deb",

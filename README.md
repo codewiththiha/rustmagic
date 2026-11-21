@@ -79,11 +79,18 @@ Every platform has an installer, not a zip you have to unpack first:
 | --- | --- | --- | --- |
 | Windows | `RustMagic-<v>-Setup-x64.exe`, `RustMagic-<v>-x64.msi` | run it, or `msiexec /i` | window, CLI, C ABI |
 | macOS | `RustMagic-<v>-universal.dmg` | open, drag to Applications | window, CLI, C ABI (unsigned) |
-| Debian, Ubuntu | `rustmagic_<v>_amd64.deb` | `sudo apt install ./…deb` | window, CLI, C ABI, **IBus engine** |
+| Debian, Ubuntu | `rustmagic_<v>_amd64.deb`, `…_arm64.deb` | `sudo apt install ./…deb` | window, CLI, C ABI, **IBus engine** |
 | Fedora, RHEL | `rustmagic-<v>-1.x86_64.rpm` | `sudo dnf install ./…rpm` | the same |
 | Arch | `rustmagic-<v>-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./…zst` | the same |
 | Arch, from source | `PKGBUILD`, `rustmagic.install`, `rustmagic-<v>.tar.gz` | `makepkg -si` | the same, compiled here |
+| Alpine, static | `…-x86_64-musl.tar.gz`, `…-aarch64-musl.tar.gz` | unpack and run | the same, statically linked |
 | anywhere | `.tar.gz` / `.zip` | unpack and run | the same, no install step |
+
+Every file carries a `.sha256` and a detached GPG signature (`.asc`), with the
+public key beside them; the Windows installers are Authenticode-signed and the
+macOS app notarised when the release was cut with those certificates. The engine
+also lives on crates.io: `km-engine`, `km-binary`, `km-script`, `km-core` and
+`km-ffi`.
 
 `git push origin v0.2.0` builds all of them — one job per platform, the Arch one
 in a container, the icons once for every installer — and publishes a single

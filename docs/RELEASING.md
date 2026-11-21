@@ -31,9 +31,11 @@ they are the smallest thing to inspect, but they are not the headline download.
 | --- | --- | --- | --- |
 | `brand` | ubuntu-latest | the icon set as an artifact, not a release asset | `tools/package/check_icon.py` — the rasterised icon must have more than one colour in it |
 | `linux` | ubuntu-22.04 | `rustmagic_<v>_amd64.deb`, `rustmagic-<v>-linux-x86_64.tar.gz` (+ `.sha256`) | `cargo test`, then `tools/smoke/ibus.sh` over a real D-Bus session, then a `dpkg-deb -c` of the `.deb` |
+| `linux-cross` | ubuntu-latest, `cross` | `rustmagic_<v>_arm64.deb`, `rustmagic-<v>-linux-aarch64.tar.gz`, `…-x86_64-musl.tar.gz`, `…-aarch64-musl.tar.gz` | `cross build` for each target, and `cross test` under qemu for the GNU one |
 | `rpm` | ubuntu-latest in a `fedora:latest` container | `rustmagic-<v>-1.x86_64.rpm` | `rpmbuild` exits zero and `rpm -qlp` lists the binaries and the five keyboards |
 | `macos` | macos-latest | `RustMagic-<v>-universal.dmg` (+ `.sha256`), `rustmagic-<v>-macos-universal.zip` | `cargo test`, `lipo -archs` on each binary, then `hdiutil verify` on the disk image |
 | `windows` | windows-latest | `RustMagic-<v>-Setup-x64.exe`, `RustMagic-<v>-x64.msi`, `rustmagic-<v>-windows-x86_64.zip` (+ `.sha256`) | `cargo test`, then Inno Setup and WiX both compile the installers |
+| `crates` | ubuntu-latest | `km-core`, `km-binary`, `km-script`, `km-engine`, `km-ffi` on crates.io | `cargo test` for the five, then `tools/publish_crates.py` publishes them in dependency order and waits for each to appear in the index |
 | `arch` | `archlinux:latest` container | `rustmagic-<v>-1-x86_64.pkg.tar.zst`, `PKGBUILD`, `rustmagic.install`, `rustmagic-<v>.SRCINFO`, `rustmagic-<v>.tar.gz` | `makepkg` builds as a non-root user, after the same tests |
 
 `brand` runs first because the icon is one file that four jobs need: the `.deb`,
@@ -56,10 +58,13 @@ half of one.
 | Windows | `RustMagic-<v>-Setup-x64.exe` | run it: Start menu entry, Add/Remove Programs entry, optional PATH |
 | Windows, managed | `RustMagic-<v>-x64.msi` | `msiexec /i`, Group Policy, Intune |
 | macOS | `RustMagic-<v>-universal.dmg` | open, drag `RustMagic.app` to Applications |
-| Debian, Ubuntu | `rustmagic_<v>_amd64.deb` | `sudo apt install ./rustmagic_<v>_amd64.deb` |
+| Debian, Ubuntu (x86-64) | `rustmagic_<v>_amd64.deb` | `sudo apt install ./rustmagic_<v>_amd64.deb` |
+| Debian, Ubuntu (ARM64) | `rustmagic_<v>_arm64.deb` | `sudo apt install ./rustmagic_<v>_arm64.deb` |
 | Fedora, RHEL | `rustmagic-<v>-1.x86_64.rpm` | `sudo dnf install ./rustmagic-<v>-1.x86_64.rpm` |
 | Arch | `rustmagic-<v>-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./rustmagic-<v>-1-x86_64.pkg.tar.zst` |
 | Arch, from source | `PKGBUILD` + `rustmagic.install` + `rustmagic-<v>.tar.gz` | `makepkg -si` in that directory |
+| Alpine, static | `rustmagic-<v>-linux-x86_64-musl.tar.gz` | unpack and run; statically linked, so any libc |
+| ARM64, static | `rustmagic-<v>-linux-aarch64-musl.tar.gz` | the same |
 
 ### Inside the Linux tarball
 
@@ -123,20 +128,63 @@ on the next machine. `check()` leaves out `tools/check_repo.py`: it inspects the
 working tree, and a release tarball is not a git checkout. Both `-debug` and the
 debug symbols are switched off, so there is one package and not two.
 
+## Signing
+
+Three mechanisms, each with its own secret, and each degrading honestly when the
+secret is absent: the release is then unsigned, and the notes say so instead of
+pretending.
+
+| What | Secret | Effect |
+| --- | --- | --- |
+| every file | `GPG_PRIVATE_KEY`, `GPG_PASSPHRASE` | a detached `<file>.asc`, a `SHA256SUMS`, a signed `SHA256SUMS.asc`, and the public key as `rustmagic-signing-key.asc` |
+| Windows installers | `WINDOWS_CERTIFICATE_PFX` (base64), `WINDOWS_CERTIFICATE_PASSWORD` | `signtool sign` with SHA-256 and a DigiCert timestamp, on the binaries and then on the `.exe` and `.msi` |
+| macOS app | `APPLE_CERTIFICATE_P12` (base64), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID` | `codesign` with the hardened runtime, `notarytool submit --wait`, and `stapler staple` |
+
+`tools/package/sign.sh` is the GPG half on its own, so the same signature can be
+made outside CI:
+
+```sh
+gpg --export-secret-keys --armor "$KEY" > key.asc
+GPG_PRIVATE_KEY="$(cat key.asc)" tools/package/sign.sh sign dist/*
+tools/package/sign.sh verify dist/*.tar.gz   # with the key imported
+```
+
+The signatures are made in the `publish` job, because it is the only job that can
+see the whole draft. A signature per platform job would mean five keys to
+collect before anyone could check one file.
+
+## crates.io
+
+The engine is five crates — `km-core`, `km-binary`, `km-script`, `km-engine`,
+`km-ffi` — and the `crates` job publishes them on every tag, in dependency
+order, with `tools/publish_crates.py`. It needs `CARGO_REGISTRY_TOKEN`; without
+it the job fails rather than skipping, because a release that quietly publishes
+nothing is how a version number goes missing.
+
+The rest of the workspace stays unpublished on purpose: `km-store` embeds the
+keyboard files that ship with the desktop build, `km-session` owns the app's
+on-disk layout, `km-ibus` speaks D-Bus to a Linux session, and the window and
+the three binaries are an application, not a library.
+
+A crate is never republished: the script skips a version the index already has,
+so re-running a half-finished release finishes the rest instead of failing.
+
 ## What a release does *not* contain
 
-Being explicit here is the point of a release note:
+Two things, still, and both are platform components rather than loose ends:
 
-- **No Windows text service.** There is no TSF service yet, so on Windows the
-  window, the CLI and the C ABI work; typing into other applications with a
-  layout does not.
-- **No macOS input method.** There is no `InputMethodKit` bundle yet; the same
-  three things work and system-wide typing is the next piece of work.
-- **No signing.** No Apple notarisation, no Authenticode, no GPG-signature on the
-  packages. The `.sha256` files let you check what you downloaded, nothing more.
-- **No `crates.io`.** Every crate sets `publish = false`; the engine is consumed
-  as a path dependency or through the C ABI.
-- **No cross-built Linux ARM or musl.** One linux job, one target.
+- **No Windows TSF text service.** The window, the CLI and the C ABI work. A TSF
+  service is a COM in-process server (`ITfTextInputProcessorEx`,
+  `ITfKeyEventSink`, `ITfComposition`) registered under the TSF category, and it
+  needs a Windows machine to test; shipping one that has never typed a character
+  would be worse than the honest gap.
+- **No macOS input method.** The same shape of work through `InputMethodKit`
+  (`IMKServer`, `IMKInputController`) inside the app bundle, and the same reason
+  for waiting.
+
+Everything else on the list below is now in the release: installers for every
+platform, ARM64 and musl builds, GPG signatures, Authenticode and notarisation
+when certificates are configured, and the engine on crates.io.
 
 ## Checking a release by hand
 

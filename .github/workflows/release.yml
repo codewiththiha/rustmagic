@@ -104,6 +104,88 @@ jobs:
             dist/rustmagic-*.sha256
             dist/rustmagic_*.deb
 
+  linux-cross:
+    name: linux (${{ matrix.arch }}, ${{ matrix.flavour }})
+    runs-on: ubuntu-latest
+    needs: brand
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-unknown-linux-gnu
+            arch: aarch64
+            flavour: gnu
+            package_deb: true
+          - target: x86_64-unknown-linux-musl
+            arch: x86_64
+            flavour: musl
+            package_deb: false
+          - target: aarch64-unknown-linux-musl
+            arch: aarch64
+            flavour: musl
+            package_deb: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: brand
+          path: dist/brand
+      - name: resolve the version
+        id: version
+        shell: bash
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref }}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+      - name: cross, pinned
+        # `cross` brings the linker, the sysroot and, for the GNU target, the qemu
+        # it needs to run the tests it just built.
+        run: |
+          curl -fsSL -o /tmp/cross.tar.gz \
+            https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz
+          tar -xzf /tmp/cross.tar.gz -C /tmp
+          install -m755 /tmp/cross "$HOME/.cargo/bin/cross"
+          cross --version
+      - name: build every binary for ${{ matrix.target }}
+        run: |
+          cross build --release --locked --target "${{ matrix.target }}" \
+            --package rustmagic --package rustmagic-cli \
+            --package rustmagic-ibus --package km-ffi
+      - name: test what can run here
+        # qemu comes with cross for the GNU target; a musl build is a build, not
+        # a run, in this job.
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            cross test --release --locked --target "${{ matrix.target }}" \
+              -p km-core -p km-binary -p km-script -p km-engine -p km-store -p km-session
+          else
+            echo "no runner for ${{ matrix.target }}: the build is the check"
+          fi
+      - name: package
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          extra=""
+          if [ "${{ matrix.package_deb }}" != "true" ]; then
+            extra="--no-deb"
+          fi
+          python3 tools/package/linux.py --version "$version" \
+            --bin-dir "target/${{ matrix.target }}/release" \
+            --arch "${{ matrix.arch }}" --flavour "${{ matrix.flavour }}" $extra
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          draft: true
+          files: |
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+            dist/*.deb
+
   rpm:
     name: fedora (.rpm)
     runs-on: ubuntu-22.04
@@ -229,6 +311,51 @@ jobs:
           window, the CLI and the C ABI work, and system-wide typing is the next
           piece of work.
           TXT
+      - name: sign and notarise, when Apple lets us
+        # Without a Developer ID certificate this is a no-op and the bundle ships
+        # unsigned, which is what the release notes then say. With one, the app is
+        # signed with the hardened runtime, notarised, and the ticket stapled, so
+        # the first launch is a double-click instead of right-click, Open.
+        env:
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -eu
+          version="${{ steps.version.outputs.version }}"
+          bundle="dist/rustmagic-$version-macos-universal/RustMagic.app"
+          if [ -z "${CERTIFICATE:-}" ]; then
+            echo "::notice::no Apple certificate, so the app ships unsigned"
+            exit 0
+          fi
+          keychain=$(mktemp -d)/rustmagic.keychain-db
+          password=$(openssl rand -hex 16)
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 900 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          printf '%s' "$CERTIFICATE" | base64 --decode > /tmp/certificate.p12
+          security import /tmp/certificate.p12 -k "$keychain" \
+            -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm -f /tmp/certificate.p12
+          codesign --force --deep --timestamp --options runtime \
+            --sign "$SIGNING_IDENTITY" "$bundle"
+          codesign --verify --deep --strict --verbose=2 "$bundle"
+          if [ -z "${APPLE_ID:-}" ]; then
+            echo "::notice::no notarytool credentials, so the app is signed but not notarised"
+            exit 0
+          fi
+          ditto -c -k --keepParent "$bundle" /tmp/notarise.zip
+          xcrun notarytool submit /tmp/notarise.zip \
+            --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APPLE_PASSWORD" \
+            --wait
+          xcrun stapler staple "$bundle"
+          xcrun stapler validate "$bundle"
+          security delete-keychain "$keychain"
       - name: make the disk image and the archive
         run: |
           version="${{ steps.version.outputs.version }}"
@@ -300,6 +427,33 @@ jobs:
           applications with a layout is the next piece of work. Managing
           keyboards, trying them, and driving the engine from code all work.
           TXT
+      - name: sign, when there is a certificate
+        # Authenticode, and a timestamp, so the signature outlives the
+        # certificate. No certificate means unsigned installers and a SmartScreen
+        # warning, which the release notes say out loud.
+        shell: bash
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -eu
+          if [ -z "${CERTIFICATE:-}" ]; then
+            echo "::notice::no Authenticode certificate, so the installers ship unsigned"
+            exit 0
+          fi
+          signtool=$(ls "/c/Program Files (x86)/Windows Kits/10/bin/"*/x64/signtool.exe \
+                        "/c/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" 2>/dev/null | tail -1)
+          if [ -z "$signtool" ]; then
+            echo "::error::signtool is not on this runner"
+            exit 1
+          fi
+          printf '%s' "$CERTIFICATE" | base64 --decode > certificate.pfx
+          for file in dist/windows/rustmagic.exe dist/windows/rustmagic-cli.exe \
+                      dist/windows/km_ffi.dll; do
+            "$signtool" sign /fd sha256 /td sha256 /tr http://timestamp.digicert.com \
+              /f certificate.pfx /p "$CERTIFICATE_PASSWORD" "$file"
+          done
+          rm -f certificate.pfx
       - name: installer (.exe)
         shell: bash
         run: |
@@ -326,6 +480,25 @@ jobs:
             -out dist\rustmagic.wixobj packaging\windows\rustmagic.wxs
           & "$wix\light.exe" -nologo -ext WixUIExtension `
             -out "dist\RustMagic-${{ steps.version.outputs.version }}-x64.msi" dist\rustmagic.wixobj
+      - name: sign the installers
+        shell: bash
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -eu
+          if [ -z "${CERTIFICATE:-}" ]; then
+            echo "::notice::no Authenticode certificate, so the installers ship unsigned"
+            exit 0
+          fi
+          signtool=$(ls "/c/Program Files (x86)/Windows Kits/10/bin/"*/x64/signtool.exe \
+                        "/c/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" 2>/dev/null | tail -1)
+          printf '%s' "$CERTIFICATE" | base64 --decode > certificate.pfx
+          for file in dist/*Setup*.exe dist/*.msi; do
+            "$signtool" sign /fd sha256 /td sha256 /tr http://timestamp.digicert.com \
+              /f certificate.pfx /p "$CERTIFICATE_PASSWORD" "$file"
+          done
+          rm -f certificate.pfx
       - name: portable archive
         shell: bash
         run: |
@@ -414,9 +587,34 @@ jobs:
           draft: true
           files: /tmp/assets/*
 
+  crates:
+    name: crates.io
+    runs-on: ubuntu-latest
+    # A registry outage must not hold back a security release, so this job is
+    # not a dependency of `publish`. A failure here is still a red release.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: the tests the registry never sees
+        run: |
+          cargo test --locked -q \
+            -p km-core -p km-binary -p km-script -p km-engine -p km-ffi
+      - name: publish the five engine crates, in dependency order
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo "::error::CARGO_REGISTRY_TOKEN is not set, so nothing can be published"
+            echo "Add it under Settings -> Secrets -> Actions, then re-run this job."
+            exit 1
+          fi
+          python3 tools/publish_crates.py
+
   publish:
     name: publish the release
-    needs: [linux, rpm, macos, windows, arch]
+    needs: [linux, linux-cross, rpm, macos, windows, arch]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -424,6 +622,38 @@ jobs:
           # On a tag push this is the tag; on a manual run it is the tag that
           # was asked for. Either way the source is what the version names.
           ref: ${{ github.event.inputs.tag || github.ref }}
+      - name: sign every asset, when a key is configured
+        # Detached signatures, one per file, plus the public key and a checksum
+        # file that is itself signed. This runs in one job because it is the only
+        # job that can see the whole draft; a signature made per platform would
+        # mean five keys to collect.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          if [ -z "${GPG_PRIVATE_KEY:-}" ]; then
+            echo "::notice::GPG_PRIVATE_KEY is not set, so this release carries no signatures"
+            exit 0
+          fi
+          mkdir -p signed
+          cd signed
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir . --clobber
+          files=$(find . -maxdepth 1 -type f \
+            ! -name '*.asc' ! -name '*.sha256' ! -name 'SHA256SUMS' \
+            -printf '%f\n' | sort)
+          [ -n "$files" ] || { echo "::error::the draft has no assets to sign"; exit 1; }
+          # shellcheck disable=SC2086
+          sh "$GITHUB_WORKSPACE/tools/package/sign.sh" sign $files
+          # shellcheck disable=SC2086
+          sha256sum $files > SHA256SUMS
+          sh "$GITHUB_WORKSPACE/tools/package/sign.sh" sign SHA256SUMS
+          # A signature nobody can check without hunting for the key is theatre.
+          # shellcheck disable=SC2086
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber \
+            SHA256SUMS SHA256SUMS.asc rustmagic-signing-key.asc *.asc
+          ls -l
       - name: check every target landed, then publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -436,7 +666,11 @@ jobs:
           echo "$assets"
           for expected in \
               linux-x86_64.tar.gz \
+              linux-aarch64.tar.gz \
+              linux-x86_64-musl.tar.gz \
+              linux-aarch64-musl.tar.gz \
               _amd64.deb \
+              _arm64.deb \
               .rpm \
               .dmg \
               Setup-x64.exe \
@@ -458,30 +692,46 @@ jobs:
           | Windows | `RustMagic-<v>-Setup-x64.exe` | run it |
           | Windows (managed) | `RustMagic-<v>-x64.msi` | `msiexec /i`, Group Policy, Intune |
           | macOS (universal) | `RustMagic-<v>-universal.dmg` | open, drag to Applications |
-          | Debian, Ubuntu | `rustmagic_<v>_amd64.deb` | `sudo apt install ./rustmagic_<v>_amd64.deb` |
+          | Debian, Ubuntu (x86-64) | `rustmagic_<v>_amd64.deb` | `sudo apt install ./rustmagic_<v>_amd64.deb` |
+          | Debian, Ubuntu (ARM64) | `rustmagic_<v>_arm64.deb` | `sudo apt install ./rustmagic_<v>_arm64.deb` |
           | Fedora, RHEL | `rustmagic-<v>-1.x86_64.rpm` | `sudo dnf install ./rustmagic-<v>-1.x86_64.rpm` |
           | Arch | `rustmagic-<v>-1-x86_64.pkg.tar.zst` | `sudo pacman -U` |
           | Arch (from source) | `PKGBUILD` + `rustmagic.install` + `rustmagic-<v>.tar.gz` | `makepkg -si` |
+          | Alpine, static | `rustmagic-<v>-linux-x86_64-musl.tar.gz` | unpack and run, no libc to match |
+          | ARM64, static | `rustmagic-<v>-linux-aarch64-musl.tar.gz` | the same |
           | anywhere | `.tar.gz` / `.zip` | unpack and run |
 
           Every release carries five Myanmar keyboards — Pyidaungsu MM, my-Win
           2.3.0, MyanSan, Zawgyi and ZawCode — embedded in the binaries, so a
           fresh install types without downloading anything.
 
-          Checksums are next to every archive. The macOS app and the Windows
-          installers are unsigned: macOS needs right-click, Open, the first time.
+          Every file has a `.sha256` next to it, a detached GPG signature
+          (`<file>.asc`), and there is a signed `SHA256SUMS`. Verify with:
 
-          **Not in this release.** There is no Windows TSF service and no macOS
-          input method yet, so system-wide typing is IBus on Linux only. Nothing
-          is signed or notarised, and no crate is published.
+          ```
+          gpg --import rustmagic-signing-key.asc
+          gpg --verify SHA256SUMS.asc SHA256SUMS
+          sha256sum -c SHA256SUMS
+          ```
+
+          The Windows installers are Authenticode-signed and timestamped, and the
+          macOS app is signed with a Developer ID and notarised, whenever the
+          release carries the certificates for them. If a release does not, the
+          `.asc` files are still there and the notes say so.
+
+          **Not in this release.** There is no Windows TSF text service and no
+          macOS input method yet, so system-wide typing is IBus on Linux only.
+          The engine crates (`km-core`, `km-binary`, `km-script`, `km-engine`,
+          `km-ffi`) are on crates.io from this release on.
 
           Details, including how to cut the next one: `docs/RELEASING.md`.
           TXT
           sed -i "s/<v>/${TAG#v}/g" "$notes"
           # The package names carry the pkgrel, so they are read from the upload.
           deb=$(echo "$assets" | grep '_amd64\.deb' | head -1)
+          deb_arm=$(echo "$assets" | grep '_arm64\.deb' | head -1)
           rpm=$(echo "$assets" | grep '\.rpm' | head -1)
           arch=$(echo "$assets" | grep 'pkg\.tar\.zst' | head -1)
-          sed -i "s/rustmagic_<v>_amd64\.deb/$deb/g; s/rustmagic-<v>-1\.x86_64\.rpm/$rpm/g; s/rustmagic-<v>-1-x86_64\.pkg\.tar\.zst/$arch/g" "$notes"
+          sed -i "s/rustmagic_<v>_arm64\.deb/$deb_arm/g; s/rustmagic_<v>_amd64\.deb/$deb/g; s/rustmagic-<v>-1\.x86_64\.rpm/$rpm/g; s/rustmagic-<v>-1-x86_64\.pkg\.tar\.zst/$arch/g" "$notes"
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false \
             --title "RustMagic ${TAG#v}" --notes-file "$notes"

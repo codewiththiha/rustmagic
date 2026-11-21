@@ -7,7 +7,8 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-publish = false
+keywords = ["ffi", "keyboard", "input-method", "c-api"]
+categories = ["api-bindings", "internationalization"]
 
 [dependencies]
 km-core = { workspace = true }
