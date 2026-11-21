@@ -109,18 +109,18 @@ pub fn map(keysym: u32) -> Mapped {
         0x003e => shifted(0xbe),
         0x003f => shifted(0xbf),
         0x007e => shifted(0xc0),
-        0x002d => plain(0xbd),
-        0x003d => plain(0xbb),
-        0x005b => plain(0xdb),
-        0x005d => plain(0xdd),
-        0x005c => plain(0xdc),
-        0x003b => plain(0xba),
-        0x0027 => plain(0xde),
-        0x0060 => plain(0xc0),
-        0x002c => plain(0xbc),
-        0x002e => plain(0xbe),
-        0x002f => plain(0xbf),
-        0x0020 => plain(0x20),
+        0x002d => plain(0xbd, '-'),
+        0x003d => plain(0xbb, '='),
+        0x005b => plain(0xdb, '['),
+        0x005d => plain(0xdd, ']'),
+        0x005c => plain(0xdc, '\\'),
+        0x003b => plain(0xba, ';'),
+        0x0027 => plain(0xde, '\''),
+        0x0060 => plain(0xc0, '`'),
+        0x002c => plain(0xbc, ','),
+        0x002e => plain(0xbe, '.'),
+        0x002f => plain(0xbf, '/'),
+        0x0020 => plain(0x20, ' '),
         // Editing and navigation keys.
         0xff08 => key_only(0x08), // BackSpace
         0xff09 => key_only(0x09), // Tab
@@ -178,11 +178,11 @@ fn letter(keysym: u32, code: u32) -> Mapped {
     }
 }
 
-/// A key whose character is the same as the virtual key code.
-fn plain(code: u16) -> Mapped {
+/// An unshifted key: virtual-key identity and actual keysym character are distinct.
+fn plain(code: u16, text: char) -> Mapped {
     Mapped {
         key: code,
-        text: char::from_u32(u32::from(code)),
+        text: Some(text),
     }
 }
 
@@ -212,6 +212,31 @@ mod tests {
         assert_eq!(mapped.key, 0x41, "`a` is VK 0x41");
         assert_eq!(mapped.text, Some('a'));
         assert_eq!(map(0x007a).key, 0x5a);
+    }
+
+    #[test]
+    fn plain_punctuation_keeps_its_text_separate_from_the_virtual_key() {
+        assert_eq!(
+            map(0x003b),
+            Mapped {
+                key: 0xba,
+                text: Some(';'),
+            }
+        );
+        assert_eq!(
+            map(0x002f),
+            Mapped {
+                key: 0xbf,
+                text: Some('/'),
+            }
+        );
+        assert_eq!(
+            map(0x002d),
+            Mapped {
+                key: 0xbd,
+                text: Some('-'),
+            }
+        );
     }
 
     #[test]
