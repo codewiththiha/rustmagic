@@ -124,6 +124,20 @@ fn what_pyidaungsu_says_about_the_vowel_e() {
     let raw = km_binary::read(&bytes).expect("a bundled keyboard decodes");
     let keyboard = Keyboard::from_bytes(&bytes).expect("the engine decodes the keyboard");
 
+    println!("\n=== pyidaungsu-mm word check");
+    for sequence in ["ta;", "at;", "t;a"] {
+        let mut engine = engine(&path);
+        for key in sequence.chars() {
+            engine.key(KeyInput::character(key));
+        }
+        let output = engine.context();
+        let codepoints: Vec<String> = output
+            .chars()
+            .map(|character| format!("U+{:04X}", character as u32))
+            .collect();
+        println!("  {sequence} -> {} {codepoints:?}", show(output));
+    }
+
     println!("\n=== pyidaungsu-mm, rules containing the vowel or invisible characters");
     for rule in &raw.rules {
         if rule.rhs.contains(&0x1031)
