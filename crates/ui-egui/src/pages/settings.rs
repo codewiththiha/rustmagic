@@ -19,7 +19,7 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
         ui.set_width(ui.available_width());
         ui.label(
             egui::RichText::new("Appearance")
-                .size(13.5)
+                .font(crate::theme::bold(13.5))
                 .strong()
                 .color(palette.text),
         );
@@ -65,14 +65,18 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
         ui.set_width(ui.available_width());
         ui.label(
             egui::RichText::new("Library")
-                .size(13.5)
+                .font(crate::theme::bold(13.5))
                 .strong()
                 .color(palette.text),
         );
         ui.add_space(10.0);
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
-                ui.label(egui::RichText::new("Folder").size(14.0).color(palette.text));
+                ui.label(
+                    egui::RichText::new("Folder")
+                        .font(crate::theme::bold(14.0))
+                        .color(palette.text),
+                );
                 ui.label(
                     egui::RichText::new(session.library_root().display().to_string())
                         .size(11.5)
@@ -109,7 +113,7 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
         ui.set_width(ui.available_width());
         ui.label(
             egui::RichText::new("Keyboard shortcuts")
-                .size(13.5)
+                .font(crate::theme::bold(13.5))
                 .strong()
                 .color(palette.text),
         );

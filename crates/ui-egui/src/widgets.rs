@@ -8,54 +8,101 @@ use egui::{Align, Align2, Color32, Layout, Rect, Response, Rounding, Sense, Stro
 use km_session::KeyCap;
 
 use crate::icons::Icon;
-use crate::theme::Palette;
+use crate::theme::{self, Palette};
 
 /// A page heading with a line of context under it.
 pub fn page_title(ui: &mut Ui, palette: &Palette, title: &str, subtitle: &str) {
     ui.label(
         egui::RichText::new(title)
-            .size(24.0)
-            .strong()
+            .font(theme::bold(26.0))
             .color(palette.text),
     );
+    ui.add_space(2.0);
     ui.label(
         egui::RichText::new(subtitle)
-            .size(13.0)
+            .size(13.5)
             .color(palette.muted),
     );
-    ui.add_space(14.0);
+    ui.add_space(18.0);
 }
 
 /// A small rounded label, used for counts and states.
+///
+/// The tint carries the meaning and the fill is that tint at low strength, so a
+/// chip says what it is about rather than being another grey box.
 pub fn pill(ui: &mut Ui, palette: &Palette, text: &str, tint: Color32) {
-    let galley =
-        ui.painter()
-            .layout_no_wrap(text.to_owned(), egui::FontId::proportional(11.5), tint);
-    let size = Vec2::new(galley.size().x + 16.0, galley.size().y + 8.0);
+    let galley = ui
+        .painter()
+        .layout_no_wrap(text.to_owned(), theme::bold(11.0), tint);
+    let size = Vec2::new(galley.size().x + 16.0, galley.size().y + 9.0);
     let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
+    ui.painter().rect_filled(
+        rect,
+        Rounding::same(size.y / 2.0),
+        Color32::from_rgba_unmultiplied(tint.r(), tint.g(), tint.b(), 34),
+    );
+    let _ = palette;
     ui.painter()
-        .rect_filled(rect, Rounding::same(size.y / 2.0), palette.accent_soft);
-    ui.painter()
-        .galley(rect.center() - galley.size() / 2.0, galley, palette.text);
+        .galley(rect.center() - galley.size() / 2.0, galley, tint);
 }
 
 /// A button that reads as the primary action of its card.
+///
+/// Drawn by hand rather than through `egui::Button`: a filled button needs its
+/// own hover colour, and the widget's own idea of a hovered fill is the palette's
+/// card, which would make the one button worth pressing the one that vanishes.
 pub fn primary_button(ui: &mut Ui, palette: &Palette, text: &str) -> Response {
-    ui.add(
-        egui::Button::new(egui::RichText::new(text).size(13.0).color(Color32::WHITE))
-            .fill(palette.accent)
-            .rounding(Rounding::same(9.0)),
-    )
+    let galley = ui
+        .painter()
+        .layout_no_wrap(text.to_owned(), theme::bold(13.0), Color32::WHITE);
+    let size = Vec2::new(galley.size().x + 28.0, 32.0);
+    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
+    let fill = if response.is_pointer_button_down_on() {
+        palette.accent
+    } else if response.hovered() {
+        palette.accent_hover
+    } else {
+        palette.accent
+    };
+    ui.painter().rect_filled(rect, Rounding::same(10.0), fill);
+    ui.painter()
+        .galley(rect.center() - galley.size() / 2.0, galley, Color32::WHITE);
+    response.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
 /// A quiet button, for everything that is not the point of the page.
 pub fn quiet_button(ui: &mut Ui, palette: &Palette, text: &str) -> Response {
-    ui.add(
-        egui::Button::new(egui::RichText::new(text).size(13.0).color(palette.muted))
-            .fill(Color32::TRANSPARENT)
-            .stroke(Stroke::new(1.0_f32, palette.line))
-            .rounding(Rounding::same(9.0)),
-    )
+    let colour = palette.muted;
+    let galley = ui
+        .painter()
+        .layout_no_wrap(text.to_owned(), theme::bold(12.5), colour);
+    let size = Vec2::new(galley.size().x + 24.0, 32.0);
+    let (rect, response) = ui.allocate_exact_size(size, Sense::click());
+    let hovered = response.hovered();
+    if hovered {
+        ui.painter()
+            .rect_filled(rect, Rounding::same(10.0), palette.card_hover);
+    }
+    ui.painter().rect_stroke(
+        rect,
+        Rounding::same(10.0),
+        Stroke::new(
+            1.0_f32,
+            if hovered {
+                palette.accent
+            } else {
+                palette.line
+            },
+        ),
+    );
+    let galley = ui.painter().layout_no_wrap(
+        text.to_owned(),
+        theme::bold(12.5),
+        if hovered { palette.text } else { palette.muted },
+    );
+    ui.painter()
+        .galley(rect.center() - galley.size() / 2.0, galley, palette.muted);
+    response.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
 /// A row of mutually exclusive choices; returns the one clicked.
@@ -116,7 +163,7 @@ pub fn toggle(ui: &mut Ui, palette: &Palette, on: bool) -> Response {
         7.5,
         if on { Color32::WHITE } else { palette.muted },
     );
-    response
+    response.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
 /// One key cap of the layout view, drawn as a real cap.
@@ -128,9 +175,10 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap, size: Vec2) {
     let scale = (size.x / 74.0).clamp(0.55, 1.0);
     let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
     let hovered = response.hovered();
+    let rounding = Rounding::same(11.0 * scale);
     ui.painter().rect_filled(
         rect,
-        Rounding::same(11.0 * scale),
+        rounding,
         if hovered {
             palette.card_hover
         } else {
@@ -139,7 +187,7 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap, size: Vec2) {
     );
     ui.painter().rect_stroke(
         rect,
-        Rounding::same(11.0 * scale),
+        rounding,
         Stroke::new(
             1.0_f32,
             if hovered {
@@ -147,6 +195,16 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap, size: Vec2) {
             } else {
                 palette.line
             },
+        ),
+    );
+    // A cap is lit from above: one bright hairline along the top edge is what
+    // separates a key from a box with a border.
+    ui.painter().hline(
+        egui::Rangef::new(rect.left() + 8.0 * scale, rect.right() - 8.0 * scale),
+        rect.top() + 1.5,
+        Stroke::new(
+            1.0_f32,
+            Color32::from_white_alpha(if hovered { 26 } else { 14 }),
         ),
     );
     let glyph = if cap.plain.is_empty() {
@@ -158,14 +216,14 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap, size: Vec2) {
         rect.left_top() + Vec2::new(11.0 * scale, 8.0 * scale),
         Align2::LEFT_TOP,
         &cap.label,
-        egui::FontId::proportional(11.5 * scale),
+        theme::bold(11.0 * scale),
         palette.muted,
     );
     ui.painter().text(
         rect.center_bottom() - Vec2::new(0.0, 12.0 * scale),
         Align2::CENTER_BOTTOM,
         glyph,
-        egui::FontId::proportional(24.0 * scale),
+        egui::FontId::proportional(26.0 * scale),
         palette.text,
     );
     if cap.shifted != cap.plain {
@@ -173,7 +231,7 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap, size: Vec2) {
             rect.right_top() + Vec2::new(-11.0 * scale, 8.0 * scale),
             Align2::RIGHT_TOP,
             &cap.shifted,
-            egui::FontId::proportional(12.5 * scale),
+            egui::FontId::proportional(13.0 * scale),
             palette.accent,
         );
     }
@@ -184,8 +242,8 @@ pub fn card(palette: &Palette) -> egui::Frame {
     egui::Frame::none()
         .fill(palette.card)
         .stroke(Stroke::new(1.0_f32, palette.line))
-        .rounding(Rounding::same(14.0))
-        .inner_margin(egui::Margin::same(18.0))
+        .rounding(Rounding::same(16.0))
+        .inner_margin(egui::Margin::same(20.0))
 }
 
 /// A raised card, for the composition surface.
@@ -193,13 +251,13 @@ pub fn paper(palette: &Palette) -> egui::Frame {
     egui::Frame::none()
         .fill(palette.paper)
         .stroke(Stroke::new(1.0_f32, palette.line))
-        .rounding(Rounding::same(16.0))
-        .inner_margin(egui::Margin::same(22.0))
+        .rounding(Rounding::same(18.0))
+        .inner_margin(egui::Margin::same(24.0))
         .shadow(egui::epaint::Shadow {
-            offset: Vec2::new(0.0, 6.0),
-            blur: 18.0,
+            offset: Vec2::new(0.0, 8.0),
+            blur: 22.0,
             spread: 0.0,
-            color: Color32::from_black_alpha(if palette.bg.r() < 128 { 90 } else { 24 }),
+            color: Color32::from_black_alpha(if palette.bg.r() < 128 { 96 } else { 26 }),
         })
 }
 
@@ -213,37 +271,27 @@ pub fn setting_row(
 ) {
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
-            ui.label(egui::RichText::new(title).size(14.0).color(palette.text));
+            ui.label(
+                egui::RichText::new(title)
+                    .font(theme::bold(13.5))
+                    .color(palette.text),
+            );
             ui.label(egui::RichText::new(detail).size(12.0).color(palette.muted));
         });
         ui.with_layout(Layout::right_to_left(Align::Center), control);
     });
-    ui.add_space(6.0);
+    ui.add_space(8.0);
 }
 
 /// A hairline.
 pub fn separator(ui: &mut Ui, palette: &Palette) {
     let rect = ui.available_rect_before_wrap();
-    let (rect, _) = ui.allocate_exact_size(Vec2::new(rect.width(), 9.0), Sense::hover());
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(rect.width(), 13.0), Sense::hover());
     ui.painter().hline(
         rect.x_range(),
         rect.center().y,
         Stroke::new(1.0_f32, palette.line),
     );
-}
-
-/// A bar that fills `fraction` of `rect`, used for the rule-count meter.
-pub fn meter(ui: &mut Ui, palette: &Palette, fraction: f32) {
-    let width = ui.available_width().min(180.0);
-    let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 5.0), Sense::hover());
-    ui.painter()
-        .rect_filled(rect, Rounding::same(3.0), palette.line);
-    let filled = Rect::from_min_size(
-        rect.min,
-        Vec2::new(rect.width() * fraction.clamp(0.0, 1.0), rect.height()),
-    );
-    ui.painter()
-        .rect_filled(filled, Rounding::same(3.0), palette.accent);
 }
 
 /// A sidebar row: icon, label, selection state.
@@ -258,13 +306,13 @@ pub fn nav_row(
     label: &str,
     compact: bool,
 ) -> Response {
-    let height = 38.0;
+    let height = 40.0;
     let (rect, response) =
         ui.allocate_exact_size(Vec2::new(ui.available_width(), height), Sense::click());
     if active || response.hovered() {
         ui.painter().rect_filled(
             rect,
-            Rounding::same(10.0),
+            Rounding::same(11.0),
             if active {
                 palette.accent_soft
             } else {
@@ -274,14 +322,16 @@ pub fn nav_row(
     }
     if active {
         let bar = Rect::from_min_size(
-            rect.left_top() + Vec2::new(0.0, 9.0),
-            Vec2::new(3.0, height - 18.0),
+            rect.left_top() + Vec2::new(0.0, 10.0),
+            Vec2::new(3.0, height - 20.0),
         );
         ui.painter()
             .rect_filled(bar, Rounding::same(2.0), palette.accent);
     }
     let colour = if active {
         palette.accent
+    } else if response.hovered() {
+        palette.text
     } else {
         palette.muted
     };
@@ -289,7 +339,7 @@ pub fn nav_row(
     let icon_left = if compact {
         rect.center().x - icon_size / 2.0
     } else {
-        rect.left() + 14.0
+        rect.left() + 16.0
     };
     let icon_rect = Rect::from_min_size(
         egui::pos2(icon_left, rect.center().y - icon_size / 2.0),
@@ -303,12 +353,16 @@ pub fn nav_row(
     child.add(kind.image(icon_size, colour));
     if !compact {
         ui.painter().text(
-            rect.left_center() + Vec2::new(46.0, 0.0),
+            rect.left_center() + Vec2::new(48.0, 0.0),
             Align2::LEFT_CENTER,
             label,
-            egui::FontId::proportional(14.0),
-            if active { palette.text } else { palette.muted },
+            if active {
+                theme::bold(13.5)
+            } else {
+                egui::FontId::proportional(13.5)
+            },
+            if active { palette.text } else { colour },
         );
     }
-    response
+    response.on_hover_cursor(egui::CursorIcon::PointingHand)
 }

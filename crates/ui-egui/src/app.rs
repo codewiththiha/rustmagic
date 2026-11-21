@@ -1,6 +1,6 @@
 //! The window: a rail, a header, one page, and whatever is floating above them.
 
-use egui::{Color32, Context, Margin, Rounding, Stroke, Vec2};
+use egui::{Color32, Context, Margin, Rect, Rounding, Stroke, Vec2};
 
 use km_session::{Command, Event, Route, Session, ToastKind};
 use km_store::Theme;
@@ -29,6 +29,55 @@ fn shorten(text: &str, characters: usize) -> String {
     format!("{}…", kept.trim_end())
 }
 
+/// The three themes side by side, the current one lit.
+fn theme_switch(ui: &mut egui::Ui, palette: &Palette, current: Theme) -> Option<Theme> {
+    let options = [
+        (Theme::Light, Icon::Sun, "Light"),
+        (Theme::System, Icon::Monitor, "System"),
+        (Theme::Dark, Icon::Moon, "Dark"),
+    ];
+    let mut chosen = None;
+    let (rect, _) =
+        ui.allocate_exact_size(Vec2::new(ui.available_width(), 34.0), egui::Sense::hover());
+    ui.painter()
+        .rect_filled(rect, Rounding::same(10.0), palette.card);
+    ui.painter().rect_stroke(
+        rect,
+        Rounding::same(10.0),
+        Stroke::new(1.0_f32, palette.line),
+    );
+    let step = rect.width() / 3.0;
+    for (index, (theme, icon, label)) in options.iter().enumerate() {
+        let cell = Rect::from_min_size(
+            egui::pos2(rect.left() + step * index as f32 + 3.0, rect.top() + 3.0),
+            Vec2::new(step - 6.0, rect.height() - 6.0),
+        );
+        let response = ui.interact(cell, ui.id().with(label), egui::Sense::click());
+        let selected = *theme == current;
+        if selected {
+            ui.painter()
+                .rect_filled(cell, Rounding::same(8.0), palette.accent_soft);
+        } else if response.hovered() {
+            ui.painter()
+                .rect_filled(cell, Rounding::same(8.0), palette.card_hover);
+        }
+        let colour = if selected {
+            palette.accent
+        } else {
+            palette.muted
+        };
+        let mut child = ui.new_child(egui::UiBuilder::new().max_rect(cell).layout(
+            egui::Layout::centered_and_justified(egui::Direction::TopDown),
+        ));
+        child.add(icon.image(15.0, colour));
+        if response.clicked() && !selected {
+            chosen = Some(*theme);
+        }
+        response.on_hover_cursor(egui::CursorIcon::PointingHand);
+    }
+    chosen
+}
+
 /// The state the window keeps that the session has no opinion about.
 pub struct Ui {
     palette: Palette,
@@ -41,8 +90,6 @@ pub struct Ui {
     library_confirm: Option<String>,
     /** When set, the next frame focuses the command palette field. */
     focus_palette: bool,
-    /** The SVG loaders and the font are installed once per context. */
-    loaders: bool,
 }
 
 impl Default for Ui {
@@ -57,7 +104,6 @@ impl Default for Ui {
             search: String::new(),
             library_confirm: None,
             focus_palette: false,
-            loaders: false,
         }
     }
 }
@@ -70,12 +116,22 @@ impl Ui {
 
     /// Draws one frame and returns the commands the user asked for.
     pub fn show(&mut self, context: &Context, session: &mut Session) {
-        if !self.loaders {
-            // Without these the embedded SVGs have no decoder: egui shows a
+        // Kept in the context's own memory rather than in this struct: fonts and
+        // image loaders belong to a context, and a Ui may outlive the one it was
+        // first drawn on (the render tests build a context per frame set).
+        let marker = egui::Id::new("rustmagic/fonts");
+        let needs_fonts = context.data_mut(|data| data.get_temp::<bool>(marker).is_none());
+        if needs_fonts {
+            context.data_mut(|data| data.insert_temp(marker, true));
+            // Without this the embedded SVGs have no decoder: egui shows a
             // placeholder and the icons silently disappear.
             egui_extras::install_image_loaders(context);
             theme::install_fonts(context);
-            self.loaders = true;
+            // A context takes new font definitions at the start of the next
+            // frame, so this frame still has the fonts it came with — which bind
+            // no semibold family. One frame of nothing beats a panic on launch.
+            context.request_repaint();
+            return;
         }
         self.absorb(session);
         let dark = theme::is_dark(context, session.settings().theme);
@@ -208,23 +264,30 @@ impl Ui {
             )
             .show(context, |ui| {
                 ui.horizontal(|ui| {
-                    let (rect, _) = ui.allocate_exact_size(Vec2::splat(30.0), egui::Sense::hover());
+                    let side = if compact { 32.0 } else { 34.0 };
+                    let (rect, _) = ui.allocate_exact_size(Vec2::splat(side), egui::Sense::hover());
                     ui.painter()
-                        .rect_filled(rect, Rounding::same(9.0), palette.accent);
+                        .rect_filled(rect, Rounding::same(10.0), palette.accent);
+                    // A lighter square inside the mark, the way an icon sits on a
+                    // plate: it stops the logo reading as a plain coloured box.
+                    ui.painter().rect_filled(
+                        rect.shrink(3.0),
+                        Rounding::same(7.0),
+                        Color32::from_white_alpha(22),
+                    );
                     ui.painter().text(
                         rect.center(),
                         egui::Align2::CENTER_CENTER,
                         "R",
-                        egui::FontId::proportional(17.0),
+                        theme::bold(18.0),
                         Color32::WHITE,
                     );
                     if !compact {
-                        ui.add_space(2.0);
+                        ui.add_space(4.0);
                         ui.vertical(|ui| {
                             ui.label(
                                 egui::RichText::new("RustMagic")
-                                    .size(15.5)
-                                    .strong()
+                                    .font(theme::bold(15.0))
                                     .color(palette.text),
                             );
                             ui.label(
@@ -252,40 +315,48 @@ impl Ui {
                     ui.add_space(2.0);
                 }
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                    let label = match session.settings().theme {
-                        Theme::System => "System theme",
-                        Theme::Light => "Light theme",
-                        Theme::Dark => "Dark theme",
-                    };
-                    let response = if compact {
-                        let icon = match session.settings().theme {
+                    if !compact {
+                        ui.label(
+                            egui::RichText::new(format!("version {}", env!("CARGO_PKG_VERSION")))
+                                .size(10.5)
+                                .color(palette.muted),
+                        );
+                        ui.add_space(8.0);
+                    }
+                    // Three states, all of them visible: a control that cycles
+                    // makes the user guess what the next click does.
+                    let theme = session.settings().theme;
+                    let chosen = if compact {
+                        let icon = match theme {
                             Theme::System => Icon::Monitor,
                             Theme::Light => Icon::Sun,
                             Theme::Dark => Icon::Moon,
                         };
-                        ui.add(egui::Button::image_and_text(
-                            icon.image(16.0, palette.muted),
-                            egui::RichText::new("").size(0.0),
-                        ))
-                        .on_hover_text(label)
-                    } else {
-                        widgets::quiet_button(ui, palette, label)
-                    };
-                    if response.clicked() {
-                        let next = match session.settings().theme {
-                            Theme::System => Theme::Light,
-                            Theme::Light => Theme::Dark,
-                            Theme::Dark => Theme::System,
+                        let label = match theme {
+                            Theme::System => "System theme",
+                            Theme::Light => "Light theme",
+                            Theme::Dark => "Dark theme",
                         };
+                        let response = ui
+                            .add(egui::Button::image_and_text(
+                                icon.image(16.0, palette.muted),
+                                egui::RichText::new("").size(0.0),
+                            ))
+                            .on_hover_text(label);
+                        if response.clicked() {
+                            Some(match theme {
+                                Theme::System => Theme::Light,
+                                Theme::Light => Theme::Dark,
+                                Theme::Dark => Theme::System,
+                            })
+                        } else {
+                            None
+                        }
+                    } else {
+                        theme_switch(ui, palette, theme)
+                    };
+                    if let Some(next) = chosen {
                         session.execute(Command::SetTheme { theme: next });
-                    }
-                    ui.add_space(4.0);
-                    if !compact {
-                        ui.label(
-                            egui::RichText::new(format!("v{}", env!("CARGO_PKG_VERSION")))
-                                .size(10.5)
-                                .color(palette.muted),
-                        );
                     }
                 });
             });
@@ -360,6 +431,14 @@ impl Ui {
                             });
                         }
                     });
+                    // The header sits on the page rather than above it, so it ends
+                    // with a hairline the way a document's title bar does.
+                    let rect = ui.max_rect();
+                    ui.painter().hline(
+                        rect.x_range(),
+                        rect.bottom() + 7.5,
+                        Stroke::new(1.0_f32, palette.line),
+                    );
                 });
             });
     }

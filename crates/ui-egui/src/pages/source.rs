@@ -36,8 +36,7 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
         ui.set_width(ui.available_width());
         ui.label(
             egui::RichText::new(&meta.name)
-                .size(15.0)
-                .strong()
+                .font(crate::theme::bold(16.0))
                 .color(palette.text),
         );
         if !meta.description.is_empty() {
@@ -103,33 +102,53 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
             ui.set_width(ui.available_width());
             ui.label(
                 egui::RichText::new("Variables")
-                    .size(13.5)
-                    .strong()
+                    .font(crate::theme::bold(13.5))
                     .color(palette.text),
             );
-            ui.add_space(6.0);
-            for (index, value) in variables.iter().enumerate() {
-                ui.horizontal(|ui| {
-                    ui.label(
-                        egui::RichText::new(format!("${index}"))
-                            .size(11.0)
-                            .monospace()
-                            .color(palette.accent),
-                    );
-                    let shown: String = value.chars().take(60).collect();
-                    let more = if value.chars().count() > 60 {
-                        "…"
-                    } else {
-                        ""
-                    };
-                    ui.label(
-                        egui::RichText::new(format!("{shown}{more}"))
-                            .size(12.0)
-                            .monospace()
-                            .color(palette.muted),
-                    );
+            ui.label(
+                egui::RichText::new("What the rules refer to by number.")
+                    .size(11.5)
+                    .color(palette.muted),
+            );
+            ui.add_space(8.0);
+            // A grid, striped, with the number column in the accent: the list is
+            // a table of substitutions, and reading down it should not be work.
+            egui::Grid::new("variables")
+                .num_columns(2)
+                .striped(true)
+                .spacing(Vec2::new(16.0, 8.0))
+                .min_col_width(38.0)
+                .show(ui, |ui| {
+                    for (index, value) in variables.iter().enumerate() {
+                        ui.label(
+                            egui::RichText::new(format!("${index}"))
+                                .size(11.5)
+                                .monospace()
+                                .color(palette.accent),
+                        );
+                        let shown: String = value.chars().take(72).collect();
+                        let more = if value.chars().count() > 72 {
+                            "…"
+                        } else {
+                            ""
+                        };
+                        let response = ui.add(
+                            egui::Label::new(
+                                egui::RichText::new(format!("{shown}{more}"))
+                                    .size(12.0)
+                                    .monospace()
+                                    .color(palette.text),
+                            )
+                            .truncate(),
+                        );
+                        // The whole substitution is one hover away: a rule can
+                        // name a variable that is longer than the card.
+                        if value.chars().count() > 72 {
+                            response.on_hover_text(value);
+                        }
+                        ui.end_row();
+                    }
                 });
-            }
         });
         ui.add_space(12.0);
     }

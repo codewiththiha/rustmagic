@@ -39,8 +39,11 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
 
     // The surface grows with the window instead of leaving a third of the page
     // empty, and the log takes whatever is left under it.
+    // The composition surface is where the eye goes first, but it is not the
+    // subject of the page: it holds a syllable or two, and the log below it is
+    // what grows with the window.
     let room = ui.available_height();
-    let composition_height = (room * 0.42).clamp(120.0, 340.0);
+    let composition_height = (room * 0.26).clamp(110.0, 190.0);
     composition(ui, session, palette, composition_height);
     ui.add_space(12.0);
     controls(ui, session, palette);
@@ -65,8 +68,8 @@ fn composition(ui: &mut egui::Ui, session: &mut Session, palette: &Palette, min_
             });
         ui.horizontal(|ui| {
             ui.label(
-                egui::RichText::new("composition")
-                    .size(10.5)
+                egui::RichText::new("COMPOSITION")
+                    .font(crate::theme::bold(10.0))
                     .color(palette.muted),
             );
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -86,10 +89,10 @@ fn composition(ui: &mut egui::Ui, session: &mut Session, palette: &Palette, min_
             (
                 "Start typing on your keyboard…".to_owned(),
                 palette.muted,
-                22.0,
+                21.0,
             )
         } else {
-            (text.clone(), palette.text, 26.0)
+            (text.clone(), palette.text, 30.0)
         };
         let font = egui::FontId::proportional(size);
         let width = ui.available_width().max(24.0);
@@ -174,6 +177,15 @@ fn controls(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
             }
         }
         ui.add_space(6.0);
+        // Rule between "type this for me" and "send this key": two different
+        // kinds of control, so they are not one undifferentiated row.
+        let (line, _) = ui.allocate_exact_size(Vec2::new(1.0, 22.0), egui::Sense::hover());
+        ui.painter().vline(
+            line.center().x,
+            line.y_range(),
+            egui::Stroke::new(1.0_f32, palette.line),
+        );
+        ui.add_space(6.0);
         if widgets::quiet_button(ui, palette, "⌫ Backspace").clicked() {
             session.execute(Command::SandboxBackspace);
         }
@@ -199,8 +211,7 @@ fn log(ui: &mut egui::Ui, session: &Session, palette: &Palette, min_height: f32)
         ui.horizontal(|ui| {
             ui.label(
                 egui::RichText::new("Engine log")
-                    .size(13.5)
-                    .strong()
+                    .font(crate::theme::bold(13.5))
                     .color(palette.text),
             );
             ui.label(
@@ -212,10 +223,18 @@ fn log(ui: &mut egui::Ui, session: &Session, palette: &Palette, min_height: f32)
         ui.add_space(8.0);
         let entries: Vec<&KeyEntry> = session.sandbox().log().iter().rev().take(40).collect();
         if entries.is_empty() {
+            ui.add_space(6.0);
             ui.label(
-                egui::RichText::new("Nothing typed yet. Press a key.")
-                    .size(12.0)
+                egui::RichText::new("Nothing has reached the engine yet.")
+                    .size(12.5)
                     .color(palette.muted),
+            );
+            ui.label(
+                egui::RichText::new(
+                    "Press a key above, or pick one of the samples: every key becomes a row here.",
+                )
+                .size(11.5)
+                .color(palette.muted),
             );
             return;
         }

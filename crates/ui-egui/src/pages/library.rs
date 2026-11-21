@@ -1,6 +1,6 @@
 //! The library: what is installed, and what to install next.
 
-use egui::{Color32, Rounding, Stroke, Vec2};
+use egui::{Rounding, Stroke, Vec2};
 
 use km_session::{Command, Route, Session};
 use km_store::Entry;
@@ -8,6 +8,12 @@ use km_store::Entry;
 use crate::icons::Icon;
 use crate::theme::Palette;
 use crate::widgets;
+
+/// How tall a card is, margins included.
+///
+/// Cards in a row are the same height whatever is inside them: a grid whose
+/// buttons sit at four different heights reads as broken, not as flexible.
+const CARD_HEIGHT: f32 = 214.0;
 
 /// Draws the page.
 pub fn show(
@@ -62,7 +68,7 @@ pub fn show(
                 let is_confirming = confirm.as_deref() == Some(entry.id.as_str());
                 let card_width = (width - 12.0 * (columns as f32 - 1.0)) / columns as f32;
                 ui.allocate_ui_with_layout(
-                    Vec2::new(card_width - 12.0, 0.0),
+                    Vec2::new(card_width - 12.0, CARD_HEIGHT),
                     egui::Layout::top_down(egui::Align::LEFT),
                     |ui| {
                         card(
@@ -113,11 +119,20 @@ fn install_bar(
             if button_first {
                 install = Some(widgets::primary_button(ui, palette, "Install"));
             }
-            let field = ui.add(
-                egui::TextEdit::singleline(import_path)
-                    .hint_text("/path/to/layout.kms")
-                    .desired_width(width),
-            );
+            let field = egui::Frame::none()
+                .fill(ui.visuals().extreme_bg_color)
+                .stroke(Stroke::new(1.0_f32, palette.line))
+                .rounding(Rounding::same(10.0))
+                .inner_margin(egui::Margin::symmetric(10.0, 6.0))
+                .show(ui, |ui| {
+                    ui.add(
+                        egui::TextEdit::singleline(import_path)
+                            .hint_text("/path/to/layout.kms")
+                            .desired_width(width)
+                            .frame(false),
+                    )
+                })
+                .inner;
             if !button_first {
                 install = Some(widgets::primary_button(ui, palette, "Install"));
             }
@@ -166,22 +181,30 @@ fn titles(ui: &mut egui::Ui, palette: &Palette) {
 }
 
 fn search_field(ui: &mut egui::Ui, palette: &Palette, search: &mut String) {
-    ui.horizontal(|ui| {
-        let (rect, _) = ui.allocate_exact_size(Vec2::splat(16.0), egui::Sense::hover());
-        let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect).layout(
-            egui::Layout::centered_and_justified(egui::Direction::TopDown),
-        ));
-        child.add(Icon::Search.image(16.0, palette.muted));
-        ui.add(
-            egui::TextEdit::singleline(search)
-                .hint_text("Search by name or description")
-                .desired_width(320.0)
-                .frame(false),
-        );
-        if !search.is_empty() && widgets::quiet_button(ui, palette, "Clear").clicked() {
-            search.clear();
-        }
-    });
+    egui::Frame::none()
+        .fill(ui.visuals().extreme_bg_color)
+        .stroke(Stroke::new(1.0_f32, palette.line))
+        .rounding(Rounding::same(10.0))
+        .inner_margin(egui::Margin::symmetric(12.0, 7.0))
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.horizontal(|ui| {
+                let (rect, _) = ui.allocate_exact_size(Vec2::splat(15.0), egui::Sense::hover());
+                let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect).layout(
+                    egui::Layout::centered_and_justified(egui::Direction::TopDown),
+                ));
+                child.add(Icon::Search.image(15.0, palette.muted));
+                ui.add(
+                    egui::TextEdit::singleline(search)
+                        .hint_text("Search by name or description")
+                        .desired_width(f32::INFINITY)
+                        .frame(false),
+                );
+                if !search.is_empty() && widgets::quiet_button(ui, palette, "Clear").clicked() {
+                    search.clear();
+                }
+            });
+        });
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -195,33 +218,28 @@ fn card(
     removed: &mut Option<String>,
     confirm: &mut Option<String>,
 ) {
-    let stroke = if is_active {
-        Stroke::new(1.0_f32, palette.accent)
-    } else {
-        Stroke::new(1.0_f32, palette.line)
-    };
+    // The active keyboard keeps the same surface as the others and is marked by
+    // its border and its chip: filling the whole card with accent made the one
+    // card you already own the loudest thing on the page.
     egui::Frame::none()
-        .fill(if is_active {
-            palette.accent_soft
-        } else {
-            palette.card
-        })
-        .stroke(stroke)
-        .rounding(Rounding::same(14.0))
-        .inner_margin(egui::Margin::same(16.0))
+        .fill(palette.card)
+        .stroke(Stroke::new(
+            if is_active { 1.5_f32 } else { 1.0_f32 },
+            if is_active {
+                palette.accent
+            } else {
+                palette.line
+            },
+        ))
+        .rounding(Rounding::same(16.0))
+        .inner_margin(egui::Margin::same(18.0))
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
+            ui.set_min_height(CARD_HEIGHT - 36.0);
             ui.horizontal(|ui| {
-                let (rect, _) = ui.allocate_exact_size(Vec2::splat(30.0), egui::Sense::hover());
-                ui.painter().rect_filled(
-                    rect,
-                    Rounding::same(9.0),
-                    if is_active {
-                        palette.accent
-                    } else {
-                        palette.line
-                    },
-                );
+                let (rect, _) = ui.allocate_exact_size(Vec2::splat(32.0), egui::Sense::hover());
+                ui.painter()
+                    .rect_filled(rect, Rounding::same(10.0), palette.accent_soft);
                 ui.painter().text(
                     rect.center(),
                     egui::Align2::CENTER_CENTER,
@@ -232,20 +250,18 @@ fn card(
                         .unwrap_or('?')
                         .to_uppercase()
                         .to_string(),
-                    egui::FontId::proportional(15.0),
-                    if is_active {
-                        Color32::WHITE
-                    } else {
-                        palette.text
-                    },
+                    crate::theme::bold(15.0),
+                    palette.accent,
                 );
                 ui.add_space(2.0);
                 ui.vertical(|ui| {
-                    ui.label(
-                        egui::RichText::new(entry.display_name())
-                            .size(14.5)
-                            .strong()
-                            .color(palette.text),
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new(entry.display_name())
+                                .font(crate::theme::bold(14.5))
+                                .color(palette.text),
+                        )
+                        .truncate(),
                     );
                     ui.label(
                         egui::RichText::new(&entry.id)
@@ -255,64 +271,76 @@ fn card(
                 });
                 if is_active {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                        ui.label(
-                            egui::RichText::new("ACTIVE")
-                                .size(9.5)
-                                .strong()
-                                .color(palette.accent),
-                        );
+                        widgets::pill(ui, palette, "active", palette.accent);
                     });
                 }
             });
-            ui.add_space(8.0);
+            ui.add_space(12.0);
+            // Two lines are reserved whether the file has a description or not,
+            // so the stats and buttons below line up across the row.
             let description = if entry.meta.description.is_empty() {
                 "No description in the file."
             } else {
                 entry.meta.description.as_str()
             };
-            ui.label(
-                egui::RichText::new(description)
-                    .size(12.0)
-                    .color(palette.muted),
+            ui.allocate_ui_with_layout(
+                Vec2::new(ui.available_width(), 36.0),
+                egui::Layout::top_down(egui::Align::LEFT),
+                |ui| {
+                    ui.add(
+                        egui::Label::new(
+                            egui::RichText::new(description)
+                                .size(12.0)
+                                .italics()
+                                .color(palette.muted),
+                        )
+                        .wrap(),
+                    );
+                },
             );
-            ui.add_space(10.0);
-            widgets::meter(ui, palette, (entry.rules as f32 / 400.0).clamp(0.03, 1.0));
-            ui.add_space(8.0);
-            ui.horizontal(|ui| {
+            ui.add_space(6.0);
+            ui.horizontal_wrapped(|ui| {
                 widgets::pill(
                     ui,
                     palette,
                     &format!("{} rules", entry.rules),
                     palette.accent,
                 );
-                widgets::pill(ui, palette, &format!("{} B", entry.size), palette.muted);
+                widgets::pill(
+                    ui,
+                    palette,
+                    &format!("{} KB", (entry.size as f64 / 1024.0).ceil() as u64),
+                    palette.muted,
+                );
                 if entry.source.is_some() {
-                    widgets::pill(ui, palette, "source", palette.good);
+                    widgets::pill(ui, palette, "source kept", palette.good);
                 }
             });
-            ui.add_space(10.0);
-            ui.horizontal(|ui| {
-                if !is_active && widgets::primary_button(ui, palette, "Use").clicked() {
-                    *selected = Some(entry.id.clone());
-                }
-                if is_active && widgets::quiet_button(ui, palette, "Open sandbox").clicked() {
-                    *selected = Some(entry.id.clone());
-                }
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if is_confirming {
-                        if widgets::quiet_button(ui, palette, "Really remove").clicked() {
-                            *removed = Some(entry.id.clone());
-                        }
-                        if widgets::quiet_button(ui, palette, "Keep").clicked() {
-                            *confirm = None;
-                        }
-                    } else if widgets::quiet_button(ui, palette, "Remove").clicked() {
-                        *confirm = Some(entry.id.clone());
+            // The actions sit on the floor of the card, at the same height in
+            // every card of the row.
+            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                ui.horizontal(|ui| {
+                    if !is_active && widgets::primary_button(ui, palette, "Use").clicked() {
+                        *selected = Some(entry.id.clone());
                     }
+                    if is_active && widgets::quiet_button(ui, palette, "Open sandbox").clicked() {
+                        *selected = Some(entry.id.clone());
+                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if is_confirming {
+                            if widgets::quiet_button(ui, palette, "Really remove").clicked() {
+                                *removed = Some(entry.id.clone());
+                            }
+                            if widgets::quiet_button(ui, palette, "Keep").clicked() {
+                                *confirm = None;
+                            }
+                        } else if widgets::quiet_button(ui, palette, "Remove").clicked() {
+                            *confirm = Some(entry.id.clone());
+                        }
+                    });
                 });
             });
         });
-    ui.add_space(12.0);
 }
 
 fn empty_state(ui: &mut egui::Ui, palette: &Palette, library_empty: bool) {
