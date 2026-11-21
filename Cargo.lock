@@ -1474,18 +1474,18 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "km-binary"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "km-core",
 ]
 
 [[package]]
 name = "km-core"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "km-engine"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "km-binary",
  "km-core",
@@ -1494,7 +1494,7 @@ dependencies = [
 
 [[package]]
 name = "km-ffi"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "km-binary",
  "km-core",
@@ -1504,7 +1504,7 @@ dependencies = [
 
 [[package]]
 name = "km-ibus"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-io",
  "km-core",
@@ -1515,7 +1515,7 @@ dependencies = [
 
 [[package]]
 name = "km-script"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "km-binary",
  "km-core",
@@ -1523,7 +1523,7 @@ dependencies = [
 
 [[package]]
 name = "km-session"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "km-binary",
  "km-core",
@@ -1534,7 +1534,7 @@ dependencies = [
 
 [[package]]
 name = "km-store"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "km-binary",
  "km-core",
@@ -2521,7 +2521,7 @@ dependencies = [
 
 [[package]]
 name = "rustmagic"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "eframe",
  "km-core",
@@ -2532,7 +2532,7 @@ dependencies = [
 
 [[package]]
 name = "rustmagic-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "km-binary",
  "km-core",
@@ -2544,7 +2544,7 @@ dependencies = [
 
 [[package]]
 name = "rustmagic-ibus"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-io",
  "km-ibus",
@@ -3108,7 +3108,7 @@ dependencies = [
 
 [[package]]
 name = "ui-egui"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "egui",
  "egui_extras",
@@ -3886,7 +3886,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "km-engine",
  "km-script",

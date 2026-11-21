@@ -17,7 +17,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 # The five crates the engine is published as. Everything else in this workspace
 # carries the app's own layout (keyboard library, IBus service, window) and is
 # not something a stranger can consume, so it stays unpublished.
@@ -29,10 +29,10 @@ repository = "https://github.com/codewiththiha/rustmagic"
 authors = ["RustMagic contributors"]
 
 [workspace.dependencies]
-km-core = { version = "0.1.0", path = "crates/km-core" }
-km-binary = { version = "0.1.0", path = "crates/km-binary" }
-km-script = { version = "0.1.0", path = "crates/km-script" }
-km-engine = { version = "0.1.0", path = "crates/km-engine" }
+km-core = { version = "0.2.0", path = "crates/km-core" }
+km-binary = { version = "0.2.0", path = "crates/km-binary" }
+km-script = { version = "0.2.0", path = "crates/km-script" }
+km-engine = { version = "0.2.0", path = "crates/km-engine" }
 km-store = { path = "crates/km-store" }
 km-session = { path = "crates/km-session" }
 km-ibus = { path = "crates/km-ibus" }
