@@ -34,3 +34,7 @@ echo
 echo "Add it once: System Settings > Keyboard > Text Input > Input Sources > +,"
 echo "choose Burmese (or English), and pick RustMagic. Then switch to it with"
 echo "Control+Space or the input menu in the menu bar."
+echo
+echo "If it is listed but will not switch on, log out and back in once: macOS"
+echo "registers a copy made during a session immediately, and only lets it become"
+echo "the active input source at the next login."

@@ -92,8 +92,20 @@ executable refers to the engine by @rpath and not by a build path, that the five
 keyboards are inside, then installs it into ~/Library/Input Methods and runs
 tools/smoke/tis.swift. That test asks Text Input Source Services — the API
 System Settings uses — whether the input method is listed, is in the keyboard
-category, declares Burmese, can be enabled, can be selected, has input modes,
-and then puts the previous input source back.
+category, is the right kind of input source, declares Burmese, and is one a user
+can switch on and make active.
+
+Whether it actually switches on is a property of the login session rather than of
+the bundle, so the CI run reports that and carries on. On a real desktop, run the
+same test with the flag, where it must pass:
+
+    swiftc -O -framework Carbon tools/smoke/tis.swift -o build/tis-smoke
+    ./build/tis-smoke --require-activation
+
+A bundle copied into ~/Library/Input Methods while a session is running
+registers immediately but cannot be switched on until the next login:
+TISEnableInputSource answers noErr on it and changes nothing. So log out and back
+in after install-ime.sh, then run the check above.
 
 What it does not do is type. A keystroke landing in a document needs a focused
 text field and a keyboard, so that check is a human one:

@@ -310,8 +310,12 @@ jobs:
           mkdir -p "$HOME/Library/Input Methods"
           cp -R build/macos/RustMagicIME.app "$HOME/Library/Input Methods/"
           swiftc -O -framework Carbon tools/smoke/tis.swift -o build/tis-smoke
-          # The test selects the input method and puts the previous one back, so
-          # a developer running it on a laptop is not left in Burmese mode.
+          # Without --require-activation: a bundle copied into ~/Library/Input
+          # Methods while a session is running registers at once, but macOS only
+          # switches it on at the next login, so the switch is attempted and
+          # reported rather than demanded. Everything that decides whether the
+          # user can switch it on is checked hard here; INSTALL.txt says to run
+          # the same test with the flag on a desktop to prove the switch itself.
           ./build/tis-smoke
       - name: it unloads when removed
         run: |
