@@ -78,7 +78,14 @@ fi
 win_dll=$(cd "$out" && pwd -W 2>/dev/null || echo "$(pwd)/RustMagicTSF.dll")
 win_exe=$(cd "$out" && pwd -W 2>/dev/null || echo "$(pwd)/tsf-com.exe")
 win_engine=$(cd "$out" && pwd -W 2>/dev/null || echo "$(pwd)/tsf-engine.exe")
-export WINEPREFIX=${WINEPREFIX:-build/wine}
+# Wine wants an absolute prefix: it stores it in its own registry and resolves
+# paths against it.
+export WINEPREFIX=${WINEPREFIX:-"$root/build/wine"}
+case "$WINEPREFIX" in
+    /*) ;;
+    *) WINEPREFIX="$(pwd)/$WINEPREFIX" ;;
+esac
+export WINEPREFIX
 export WINEDEBUG=-all
 # Wine wants a runtime directory even when nothing needs a display.
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-$WINEPREFIX/run}

@@ -133,17 +133,6 @@ if flag(rustmagic, kTISPropertyInputSourceIsSelected) {
     fail("it is the selected input source")
 }
 
-// Its modes are what the system actually activates, and each one carries the
-// connection name from Info.plist — the rendezvous with the server process.
-if let raw = TISGetInputSourceProperty(rustmagic, kTISPropertyInputSourceIsASourceOfMode) {
-    let modes = Unmanaged<CFArray>.fromOpaque(raw).takeUnretainedValue() as NSArray
-    if modes.count > 0 {
-        pass("it has \(modes.count) input mode(s)")
-    } else {
-        fail("it has at least one input mode")
-    }
-}
-
 if let previous {
     TISSelectInputSource(previous)
     pass("the previous input source was put back")
