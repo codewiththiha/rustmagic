@@ -8,10 +8,11 @@
 #![deny(missing_docs)]
 
 mod app;
+mod icons;
 mod pages;
 mod theme;
 mod widgets;
 
 pub use app::Ui;
+pub use icons::Icon;
 pub use theme::Palette;
-pub use widgets::Icon;

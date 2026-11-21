@@ -7,6 +7,7 @@ use egui::{Align, Align2, Color32, Layout, Rect, Response, Rounding, Sense, Stro
 
 use km_session::KeyCap;
 
+use crate::icons::Icon;
 use crate::theme::Palette;
 
 /// A page heading with a line of context under it.
@@ -119,13 +120,17 @@ pub fn toggle(ui: &mut Ui, palette: &Palette, on: bool) -> Response {
 }
 
 /// One key cap of the layout view, drawn as a real cap.
-pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap) {
-    let size = Vec2::new(74.0, 64.0);
+///
+/// The size comes from the caller: a keyboard is twelve keys wide, which does
+/// not fit in a narrow window, so the board shrinks its caps instead of
+/// scrolling sideways with half a key cut off.
+pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap, size: Vec2) {
+    let scale = (size.x / 74.0).clamp(0.55, 1.0);
     let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
     let hovered = response.hovered();
     ui.painter().rect_filled(
         rect,
-        Rounding::same(11.0),
+        Rounding::same(11.0 * scale),
         if hovered {
             palette.card_hover
         } else {
@@ -134,7 +139,7 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap) {
     );
     ui.painter().rect_stroke(
         rect,
-        Rounding::same(11.0),
+        Rounding::same(11.0 * scale),
         Stroke::new(
             1.0_f32,
             if hovered {
@@ -150,25 +155,25 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap) {
         cap.plain.as_str()
     };
     ui.painter().text(
-        rect.left_top() + Vec2::new(11.0, 9.0),
+        rect.left_top() + Vec2::new(11.0 * scale, 8.0 * scale),
         Align2::LEFT_TOP,
         &cap.label,
-        egui::FontId::proportional(11.5),
+        egui::FontId::proportional(11.5 * scale),
         palette.muted,
     );
     ui.painter().text(
-        rect.center_bottom() - Vec2::new(0.0, 12.0),
+        rect.center_bottom() - Vec2::new(0.0, 12.0 * scale),
         Align2::CENTER_BOTTOM,
         glyph,
-        egui::FontId::proportional(24.0),
+        egui::FontId::proportional(24.0 * scale),
         palette.text,
     );
     if cap.shifted != cap.plain {
         ui.painter().text(
-            rect.right_top() + Vec2::new(-11.0, 9.0),
+            rect.right_top() + Vec2::new(-11.0 * scale, 8.0 * scale),
             Align2::RIGHT_TOP,
             &cap.shifted,
-            egui::FontId::proportional(12.5),
+            egui::FontId::proportional(12.5 * scale),
             palette.accent,
         );
     }
@@ -241,102 +246,18 @@ pub fn meter(ui: &mut Ui, palette: &Palette, fraction: f32) {
         .rect_filled(filled, Rounding::same(3.0), palette.accent);
 }
 
-/// A line of an icon, in fractions of its box: `((from_x, from_y), (to_x, to_y))`.
-type Segment = ((f32, f32), (f32, f32));
-
-/// The one glyph a nav item needs, drawn rather than imported.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Icon {
-    /// Installed keyboards.
-    Library,
-    /// The typing sandbox.
-    Keyboard,
-    /// The key-by-key view.
-    Grid,
-    /// The source text.
-    Code,
-    /// Settings.
-    Sliders,
-    /// Search.
-    Search,
-}
-
-impl Icon {
-    /// All icons, in navigation order.
-    pub const ALL: [Self; 5] = [
-        Self::Library,
-        Self::Keyboard,
-        Self::Grid,
-        Self::Code,
-        Self::Sliders,
-    ];
-
-    fn lines(self) -> &'static [Segment] {
-        match self {
-            Self::Library => &[
-                ((0.22, 0.25), (0.78, 0.25)),
-                ((0.22, 0.5), (0.62, 0.5)),
-                ((0.22, 0.75), (0.7, 0.75)),
-            ],
-            Self::Keyboard => &[
-                ((0.18, 0.3), (0.82, 0.3)),
-                ((0.18, 0.3), (0.18, 0.7)),
-                ((0.82, 0.3), (0.82, 0.7)),
-                ((0.18, 0.7), (0.82, 0.7)),
-                ((0.35, 0.52), (0.65, 0.52)),
-            ],
-            Self::Grid => &[
-                ((0.2, 0.2), (0.45, 0.2)),
-                ((0.55, 0.2), (0.8, 0.2)),
-                ((0.2, 0.5), (0.45, 0.5)),
-                ((0.55, 0.5), (0.8, 0.5)),
-                ((0.2, 0.8), (0.45, 0.8)),
-                ((0.55, 0.8), (0.8, 0.8)),
-            ],
-            Self::Code => &[
-                ((0.38, 0.22), (0.2, 0.5)),
-                ((0.2, 0.5), (0.38, 0.78)),
-                ((0.62, 0.22), (0.8, 0.5)),
-                ((0.8, 0.5), (0.62, 0.78)),
-            ],
-            Self::Sliders => &[
-                ((0.2, 0.3), (0.8, 0.3)),
-                ((0.2, 0.7), (0.8, 0.7)),
-                ((0.4, 0.3), (0.4, 0.3)),
-                ((0.65, 0.7), (0.65, 0.7)),
-            ],
-            Self::Search => &[
-                ((0.25, 0.25), (0.62, 0.25)),
-                ((0.25, 0.25), (0.25, 0.62)),
-                ((0.75, 0.75), (0.6, 0.6)),
-            ],
-        }
-    }
-}
-
-/// Draws an icon centred in `rect`.
-pub fn icon(ui: &Ui, rect: Rect, kind: Option<Icon>, colour: Color32) {
-    let painter = ui.painter();
-    match kind {
-        Some(kind) => {
-            for (from, to) in kind.lines() {
-                let start = rect.min + Vec2::new(rect.width() * from.0, rect.height() * from.1);
-                let end = rect.min + Vec2::new(rect.width() * to.0, rect.height() * to.1);
-                if (from.0 - to.0).abs() < 0.001 && (from.1 - to.1).abs() < 0.001 {
-                    painter.circle_filled(start, 2.2, colour);
-                } else {
-                    painter.line_segment([start, end], Stroke::new(1.6_f32, colour));
-                }
-            }
-        }
-        None => {
-            painter.circle_filled(rect.center(), 5.0, colour);
-        }
-    }
-}
-
 /// A sidebar row: icon, label, selection state.
-pub fn nav_row(ui: &mut Ui, palette: &Palette, active: bool, kind: Icon, label: &str) -> Response {
+///
+/// `compact` drops the label, which is what the rail does when the window is
+/// too narrow to hold both.
+pub fn nav_row(
+    ui: &mut Ui,
+    palette: &Palette,
+    active: bool,
+    kind: Icon,
+    label: &str,
+    compact: bool,
+) -> Response {
     let height = 38.0;
     let (rect, response) =
         ui.allocate_exact_size(Vec2::new(ui.available_width(), height), Sense::click());
@@ -359,23 +280,35 @@ pub fn nav_row(ui: &mut Ui, palette: &Palette, active: bool, kind: Icon, label: 
         ui.painter()
             .rect_filled(bar, Rounding::same(2.0), palette.accent);
     }
-    let icon_rect = Rect::from_min_size(rect.left_top() + Vec2::new(14.0, 9.0), Vec2::splat(20.0));
-    icon(
-        ui,
-        icon_rect,
-        Some(kind),
-        if active {
-            palette.accent
-        } else {
-            palette.muted
-        },
+    let colour = if active {
+        palette.accent
+    } else {
+        palette.muted
+    };
+    let icon_size = 20.0;
+    let icon_left = if compact {
+        rect.center().x - icon_size / 2.0
+    } else {
+        rect.left() + 14.0
+    };
+    let icon_rect = Rect::from_min_size(
+        egui::pos2(icon_left, rect.center().y - icon_size / 2.0),
+        Vec2::splat(icon_size),
     );
-    ui.painter().text(
-        rect.left_center() + Vec2::new(46.0, 0.0),
-        Align2::LEFT_CENTER,
-        label,
-        egui::FontId::proportional(14.0),
-        if active { palette.text } else { palette.muted },
+    let mut child = ui.new_child(
+        egui::UiBuilder::new()
+            .max_rect(icon_rect)
+            .layout(Layout::left_to_right(Align::Center)),
     );
+    child.add(kind.image(icon_size, colour));
+    if !compact {
+        ui.painter().text(
+            rect.left_center() + Vec2::new(46.0, 0.0),
+            Align2::LEFT_CENTER,
+            label,
+            egui::FontId::proportional(14.0),
+            if active { palette.text } else { palette.muted },
+        );
+    }
     response
 }

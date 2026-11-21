@@ -44,7 +44,11 @@ fn main() -> eframe::Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_title("RustMagic")
             .with_inner_size([1180.0, 820.0])
-            .with_min_inner_size([720.0, 520.0]),
+            // The window is laid out to survive being dragged small: the rail
+            // becomes icons only, the header drops its details, and the keyboard
+            // board shrinks its caps. 380 points is where egui's own widgets
+            // stop being usable, not where this layout does.
+            .with_min_inner_size([380.0, 320.0]),
         ..Default::default()
     };
     eframe::run_native(

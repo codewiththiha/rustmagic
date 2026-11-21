@@ -33,7 +33,7 @@ DisableProgramGroupPage=yes
 LicenseFile={#Stage}\LICENSE
 OutputDir=..\..\dist
 OutputBaseFilename=RustMagic-{#MyAppVersion}-Setup-x64
-SetupIconFile=rustmagic.ico
+SetupIconFile=..\..\dist\brand\rustmagic.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max
 SolidCompression=yes
@@ -59,6 +59,7 @@ Source: "{#Stage}\rustmagic.h"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\keyboards\*.km2"; DestDir: "{app}\keyboards"; Flags: ignoreversion
 Source: "{#Stage}\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#Stage}\OFL-NotoSansMyanmar.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

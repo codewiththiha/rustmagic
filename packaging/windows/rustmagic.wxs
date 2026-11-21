@@ -25,7 +25,7 @@
     <MajorUpgrade DowngradeErrorMessage="A newer RustMagic is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
-    <Icon Id="RustMagicIcon" SourceFile="packaging\windows\rustmagic.ico" />
+    <Icon Id="RustMagicIcon" SourceFile="dist\brand\rustmagic.ico" />
     <Property Id="ARPPRODUCTICON" Value="RustMagicIcon" />
     <Property Id="ARPHELPLINK" Value="https://github.com/codewiththiha/rustmagic" />
     <Property Id="ARPNOMODIFY" Value="1" />
@@ -60,6 +60,7 @@
       <Component Id="Documents" Guid="*">
         <File Id="Readme" Source="dist\windows\README.md" KeyPath="yes" />
         <File Id="Licence" Source="dist\windows\LICENSE" />
+        <File Id="FontLicence" Source="dist\windows\OFL-NotoSansMyanmar.txt" />
       </Component>
     </DirectoryRef>
 

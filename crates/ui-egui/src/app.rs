@@ -5,9 +5,10 @@ use egui::{Color32, Context, Margin, Rounding, Stroke, Vec2};
 use km_session::{Command, Event, Route, Session, ToastKind};
 use km_store::Theme;
 
+use crate::icons::Icon;
 use crate::pages;
 use crate::theme::{self, Palette};
-use crate::widgets::{self, Icon};
+use crate::widgets;
 
 /// A message in the corner that fades away on its own.
 #[derive(Debug, Clone)]
@@ -18,6 +19,15 @@ struct Toast {
 }
 
 const TOAST_SECONDS: f64 = 4.5;
+
+/// Trims a name that would not fit, counting characters rather than bytes.
+fn shorten(text: &str, characters: usize) -> String {
+    if text.chars().count() <= characters {
+        return text.to_owned();
+    }
+    let kept: String = text.chars().take(characters.saturating_sub(1)).collect();
+    format!("{}…", kept.trim_end())
+}
 
 /// The state the window keeps that the session has no opinion about.
 pub struct Ui {
@@ -31,6 +41,8 @@ pub struct Ui {
     library_confirm: Option<String>,
     /** When set, the next frame focuses the command palette field. */
     focus_palette: bool,
+    /** The SVG loaders and the font are installed once per context. */
+    loaders: bool,
 }
 
 impl Default for Ui {
@@ -45,6 +57,7 @@ impl Default for Ui {
             search: String::new(),
             library_confirm: None,
             focus_palette: false,
+            loaders: false,
         }
     }
 }
@@ -57,6 +70,13 @@ impl Ui {
 
     /// Draws one frame and returns the commands the user asked for.
     pub fn show(&mut self, context: &Context, session: &mut Session) {
+        if !self.loaders {
+            // Without these the embedded SVGs have no decoder: egui shows a
+            // placeholder and the icons silently disappear.
+            egui_extras::install_image_loaders(context);
+            theme::install_fonts(context);
+            self.loaders = true;
+        }
         self.absorb(session);
         let dark = theme::is_dark(context, session.settings().theme);
         if dark != self.dark {
@@ -163,16 +183,25 @@ impl Ui {
         }
     }
 
+    /// How narrow the window is, in the three sizes the layout cares about.
+    ///
+    /// The rail is a rail only when there is room for one; the header gives up
+    /// its details before it gives up its actions; everything else is a column
+    /// that scrolls. Nothing here is measured in a fixed 1180 pixels, which is
+    /// what made the window look right at exactly one size.
     fn rail(&mut self, context: &Context, session: &mut Session, palette: &Palette) {
+        let width = context.screen_rect().width();
+        let compact = width < 820.0;
+        let rail_width = if compact { 64.0 } else { 216.0 };
         egui::SidePanel::left("rail")
-            .exact_width(216.0)
+            .exact_width(rail_width)
             .resizable(false)
             .frame(
                 egui::Frame::none()
                     .fill(palette.panel)
                     .inner_margin(Margin {
-                        left: 12.0,
-                        right: 12.0,
+                        left: if compact { 8.0 } else { 12.0 },
+                        right: if compact { 8.0 } else { 12.0 },
                         top: 16.0,
                         bottom: 14.0,
                     }),
@@ -189,26 +218,34 @@ impl Ui {
                         egui::FontId::proportional(17.0),
                         Color32::WHITE,
                     );
-                    ui.add_space(2.0);
-                    ui.vertical(|ui| {
-                        ui.label(
-                            egui::RichText::new("RustMagic")
-                                .size(15.5)
-                                .strong()
-                                .color(palette.text),
-                        );
-                        ui.label(
-                            egui::RichText::new("keyboard engine")
-                                .size(10.5)
-                                .color(palette.muted),
-                        );
-                    });
+                    if !compact {
+                        ui.add_space(2.0);
+                        ui.vertical(|ui| {
+                            ui.label(
+                                egui::RichText::new("RustMagic")
+                                    .size(15.5)
+                                    .strong()
+                                    .color(palette.text),
+                            );
+                            ui.label(
+                                egui::RichText::new("keyboard engine")
+                                    .size(10.5)
+                                    .color(palette.muted),
+                            );
+                        });
+                    }
                 });
                 ui.add_space(18.0);
                 for (index, route) in Route::ALL.iter().enumerate() {
-                    let icon = Icon::ALL[index];
+                    let icon = Icon::NAV[index];
                     let active = session.route() == *route;
-                    let response = widgets::nav_row(ui, palette, active, icon, route.label());
+                    let response =
+                        widgets::nav_row(ui, palette, active, icon, route.label(), compact);
+                    let response = if compact {
+                        response.on_hover_text(route.label())
+                    } else {
+                        response
+                    };
                     if response.clicked() && !active {
                         session.execute(Command::ShowRoute { route: *route });
                     }
@@ -220,7 +257,21 @@ impl Ui {
                         Theme::Light => "Light theme",
                         Theme::Dark => "Dark theme",
                     };
-                    if widgets::quiet_button(ui, palette, label).clicked() {
+                    let response = if compact {
+                        let icon = match session.settings().theme {
+                            Theme::System => Icon::Monitor,
+                            Theme::Light => Icon::Sun,
+                            Theme::Dark => Icon::Moon,
+                        };
+                        ui.add(egui::Button::image_and_text(
+                            icon.image(16.0, palette.muted),
+                            egui::RichText::new("").size(0.0),
+                        ))
+                        .on_hover_text(label)
+                    } else {
+                        widgets::quiet_button(ui, palette, label)
+                    };
+                    if response.clicked() {
                         let next = match session.settings().theme {
                             Theme::System => Theme::Light,
                             Theme::Light => Theme::Dark,
@@ -229,47 +280,62 @@ impl Ui {
                         session.execute(Command::SetTheme { theme: next });
                     }
                     ui.add_space(4.0);
-                    ui.label(
-                        egui::RichText::new(format!("v{}", env!("CARGO_PKG_VERSION")))
-                            .size(10.5)
-                            .color(palette.muted),
-                    );
+                    if !compact {
+                        ui.label(
+                            egui::RichText::new(format!("v{}", env!("CARGO_PKG_VERSION")))
+                                .size(10.5)
+                                .color(palette.muted),
+                        );
+                    }
                 });
             });
     }
 
     fn header(&mut self, context: &Context, session: &mut Session, palette: &Palette) {
+        let width = context.screen_rect().width();
+        let narrow = width < 820.0;
+        let very_narrow = width < 560.0;
+        let height = if very_narrow { 56.0 } else { 64.0 };
         egui::TopBottomPanel::top("header")
-            .exact_height(64.0)
+            .exact_height(height)
             .frame(egui::Frame::none().fill(palette.bg).inner_margin(Margin {
-                left: 26.0,
-                right: 26.0,
-                top: 10.0,
-                bottom: 10.0,
+                left: if narrow { 14.0 } else { 26.0 },
+                right: if narrow { 14.0 } else { 26.0 },
+                top: 8.0,
+                bottom: 8.0,
             }))
             .show(context, |ui| {
                 ui.horizontal_centered(|ui| {
                     match session.active() {
                         Some(active) => {
+                            let name = if very_narrow {
+                                shorten(&active.keyboard.meta.name, 18)
+                            } else {
+                                active.keyboard.meta.name.clone()
+                            };
                             ui.vertical(|ui| {
                                 ui.label(
-                                    egui::RichText::new(&active.keyboard.meta.name)
-                                        .size(16.0)
+                                    egui::RichText::new(name)
+                                        .size(if very_narrow { 14.0 } else { 16.0 })
                                         .strong()
                                         .color(palette.text),
                                 );
-                                ui.label(
-                                    egui::RichText::new(format!(
-                                        "{} rules · {} variables",
-                                        active.keyboard.rule_count(),
-                                        active.keyboard.variables.len()
-                                    ))
-                                    .size(11.5)
-                                    .color(palette.muted),
-                                );
+                                if !narrow {
+                                    ui.label(
+                                        egui::RichText::new(format!(
+                                            "{} rules · {} variables",
+                                            active.keyboard.rule_count(),
+                                            active.keyboard.variables.len()
+                                        ))
+                                        .size(11.5)
+                                        .color(palette.muted),
+                                    );
+                                }
                             });
-                            ui.add_space(8.0);
-                            widgets::pill(ui, palette, "active", palette.good);
+                            if !narrow {
+                                ui.add_space(8.0);
+                                widgets::pill(ui, palette, "active", palette.good);
+                            }
                         }
                         None => {
                             ui.label(
@@ -280,13 +346,15 @@ impl Ui {
                         }
                     }
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        if widgets::quiet_button(ui, palette, "⌘K  Commands").clicked() {
+                        let commands = if very_narrow { "" } else { "  Commands" };
+                        let response = widgets::quiet_button(ui, palette, &format!("⌘K{commands}"));
+                        if response.clicked() {
                             self.palette_open = true;
                             self.palette_query.clear();
                             self.focus_palette = true;
                         }
                         ui.add_space(4.0);
-                        if widgets::quiet_button(ui, palette, "Try it").clicked() {
+                        if !very_narrow && widgets::quiet_button(ui, palette, "Try it").clicked() {
                             session.execute(Command::ShowRoute {
                                 route: Route::TryIt,
                             });

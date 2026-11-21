@@ -87,6 +87,32 @@ pub fn is_dark(context: &Context, preference: km_store::Theme) -> bool {
 }
 
 /// Installs the palette and the type scale on a context.
+/// The face that can draw Myanmar, embedded so a Myanmar keyboard can at least
+/// show its own name. egui does not shape complex scripts (no reordering, no
+/// ligatures), so what appears is the right characters in the right order but
+/// not the printed form; a proper run needs a shaping engine. Tofu boxes are
+/// worse than an approximation.
+const MYANMAR: &[u8] = include_bytes!("../../../assets/fonts/NotoSansMyanmar-Regular.ttf");
+
+/// Registers the bundled face as a fallback for both families.
+///
+/// Called once per context: `set_fonts` rebuilds the atlas, so doing it every
+/// frame would be a rebuild every frame.
+pub fn install_fonts(context: &Context) {
+    let mut fonts = egui::FontDefinitions::default();
+    fonts
+        .font_data
+        .insert("myanmar".to_owned(), egui::FontData::from_static(MYANMAR));
+    for family in [egui::FontFamily::Proportional, egui::FontFamily::Monospace] {
+        fonts
+            .families
+            .entry(family)
+            .or_default()
+            .push("myanmar".to_owned());
+    }
+    context.set_fonts(fonts);
+}
+
 pub fn apply(context: &Context, palette: &Palette, dark: bool) {
     let mut visuals = if dark {
         Visuals::dark()
@@ -110,6 +136,7 @@ pub fn apply(context: &Context, palette: &Palette, dark: bool) {
     visuals.widgets.active.bg_fill = palette.accent_soft;
     visuals.widgets.active.weak_bg_fill = palette.accent_soft;
     visuals.widgets.inactive.fg_stroke = Stroke::new(1.0_f32, palette.text);
+    visuals.widgets.noninteractive.fg_stroke = Stroke::new(1.0_f32, palette.muted);
     visuals.widgets.hovered.fg_stroke = Stroke::new(1.0_f32, palette.accent);
     visuals.window_rounding = Rounding::same(14.0);
     context.style_mut(|style| {
@@ -118,6 +145,14 @@ pub fn apply(context: &Context, palette: &Palette, dark: bool) {
         style.spacing.button_padding = Vec2::new(12.0, 7.0);
         style.spacing.menu_margin = Margin::same(8.0);
         style.spacing.interact_size.y = 26.0;
+        // A scroll bar that is part of the surface: thin, floating, and the
+        // colour of a hairline instead of a bright system grey.
+        style.spacing.scroll = egui::style::ScrollStyle {
+            bar_width: 7.0,
+            floating: true,
+            handle_min_length: 40.0,
+            ..Default::default()
+        };
         style.text_styles = [
             (egui::TextStyle::Heading, egui::FontId::proportional(24.0)),
             (egui::TextStyle::Body, egui::FontId::proportional(14.5)),

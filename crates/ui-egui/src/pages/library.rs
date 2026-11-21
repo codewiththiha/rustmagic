@@ -5,8 +5,9 @@ use egui::{Color32, Rounding, Stroke, Vec2};
 use km_session::{Command, Route, Session};
 use km_store::Entry;
 
+use crate::icons::Icon;
 use crate::theme::Palette;
-use crate::widgets::{self, Icon};
+use crate::widgets;
 
 /// Draws the page.
 pub fn show(
@@ -101,46 +102,76 @@ fn install_bar(
     import_path: &mut String,
 ) {
     widgets::card(palette).show(ui, |ui| {
-        ui.horizontal(|ui| {
-            ui.vertical(|ui| {
-                ui.label(
-                    egui::RichText::new("Install a keyboard")
-                        .size(14.0)
-                        .strong()
-                        .color(palette.text),
-                );
-                ui.label(
-                    egui::RichText::new(
-                        "A .kms source is compiled on the way in, a .km2 is verified.",
-                    )
-                    .size(11.5)
-                    .color(palette.muted),
-                );
+        ui.set_width(ui.available_width());
+        // Side by side while there is room for a path and a button; stacked
+        // under that, because a field squeezed to "/pat…" is not a field.
+        let wide = ui.available_width() >= 560.0;
+        // The wide layout is right-to-left, so it draws the button and then the
+        // field; the stacked one reads left to right and does the opposite.
+        let mut path_row = |ui: &mut egui::Ui, width: f32, button_first: bool| {
+            let mut install = None;
+            if button_first {
+                install = Some(widgets::primary_button(ui, palette, "Install"));
+            }
+            let field = ui.add(
+                egui::TextEdit::singleline(import_path)
+                    .hint_text("/path/to/layout.kms")
+                    .desired_width(width),
+            );
+            if !button_first {
+                install = Some(widgets::primary_button(ui, palette, "Install"));
+            }
+            let install = install.expect("one of the two branches drew the button");
+            let submitted =
+                field.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter));
+            if (install.clicked() || submitted) && !import_path.trim().is_empty() {
+                session.execute(Command::ImportPath {
+                    path: import_path.trim().to_owned(),
+                });
+                import_path.clear();
+            }
+        };
+        if wide {
+            ui.horizontal(|ui| {
+                titles(ui, palette);
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    path_row(ui, 300.0_f32.min(ui.available_width() * 0.7), true);
+                });
             });
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let install = widgets::primary_button(ui, palette, "Install");
-                let field = ui.add(
-                    egui::TextEdit::singleline(import_path)
-                        .hint_text("/path/to/layout.kms")
-                        .desired_width(300.0),
-                );
-                let submitted =
-                    field.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter));
-                if (install.clicked() || submitted) && !import_path.trim().is_empty() {
-                    session.execute(Command::ImportPath {
-                        path: import_path.trim().to_owned(),
-                    });
-                    import_path.clear();
-                }
+        } else {
+            titles(ui, palette);
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                path_row(ui, (ui.available_width() - 96.0).max(80.0), false);
             });
-        });
+        }
+    });
+}
+
+/// The two lines that name the import bar, wherever it is drawn.
+fn titles(ui: &mut egui::Ui, palette: &Palette) {
+    ui.vertical(|ui| {
+        ui.label(
+            egui::RichText::new("Install a keyboard")
+                .size(14.0)
+                .strong()
+                .color(palette.text),
+        );
+        ui.label(
+            egui::RichText::new("A .kms source is compiled on the way in, a .km2 is verified.")
+                .size(11.5)
+                .color(palette.muted),
+        );
     });
 }
 
 fn search_field(ui: &mut egui::Ui, palette: &Palette, search: &mut String) {
     ui.horizontal(|ui| {
         let (rect, _) = ui.allocate_exact_size(Vec2::splat(16.0), egui::Sense::hover());
-        widgets::icon(ui, rect, Some(Icon::Search), palette.muted);
+        let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect).layout(
+            egui::Layout::centered_and_justified(egui::Direction::TopDown),
+        ));
+        child.add(Icon::Search.image(16.0, palette.muted));
         ui.add(
             egui::TextEdit::singleline(search)
                 .hint_text("Search by name or description")
@@ -292,7 +323,11 @@ fn empty_state(ui: &mut egui::Ui, palette: &Palette, library_empty: bool) {
             let (rect, _) = ui.allocate_exact_size(Vec2::new(48.0, 48.0), egui::Sense::hover());
             ui.painter()
                 .rect_filled(rect, Rounding::same(14.0), palette.accent_soft);
-            widgets::icon(ui, rect.shrink(13.0), Some(Icon::Library), palette.accent);
+            let mut child =
+                ui.new_child(egui::UiBuilder::new().max_rect(rect.shrink(13.0)).layout(
+                    egui::Layout::centered_and_justified(egui::Direction::TopDown),
+                ));
+            child.add(Icon::Library.image(24.0, palette.accent));
             ui.add_space(10.0);
             ui.label(
                 egui::RichText::new(if library_empty {

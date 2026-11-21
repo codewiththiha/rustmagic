@@ -44,17 +44,39 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
             widgets::pill(ui, palette, "Shift in accent", palette.accent);
         });
         ui.add_space(12.0);
-        let cap_width = 74.0 + ui.spacing().item_spacing.x;
-        let offset = ((ui.available_width() - cap_width * 12.0) / 2.0).max(0.0);
-        for (index, row) in rows.iter().enumerate() {
-            ui.horizontal(|ui| {
-                ui.add_space(offset + index as f32 * cap_width * 0.25);
-                for cap in &row.caps {
-                    widgets::keycap(ui, palette, cap);
+        // One cap size for the whole board, set by the widest row and the room
+        // the window actually has. It shrinks to a floor, and past that floor
+        // the board scrolls sideways: a twelve-key row cannot be squeezed into
+        // a phone-width window without becoming unreadable.
+        let spacing = ui.spacing().item_spacing.x;
+        let widest = rows
+            .iter()
+            .map(|row| row.caps.len())
+            .max()
+            .unwrap_or(12)
+            .max(1);
+        let ideal = (ui.available_width() - spacing * (widest as f32 - 1.0)) / widest as f32;
+        let cap_width = ideal.clamp(30.0, 74.0);
+        let cap_size = egui::vec2(cap_width, (cap_width * 0.86).round());
+        egui::ScrollArea::horizontal()
+            .auto_shrink([false, true])
+            .show(ui, |ui| {
+                for (index, row) in rows.iter().enumerate() {
+                    let row_width =
+                        cap_width * row.caps.len() as f32 + spacing * (row.caps.len() as f32 - 1.0);
+                    let slack = (ui.available_width() - row_width).max(0.0);
+                    ui.horizontal(|ui| {
+                        // A stagger, the way a real keyboard is offset, but never
+                        // so much that a row runs past the edge.
+                        let stagger = (index as f32 * cap_width * 0.18).min(slack / 2.0);
+                        ui.add_space(slack / 2.0 + stagger);
+                        for cap in &row.caps {
+                            widgets::keycap(ui, palette, cap, cap_size);
+                        }
+                    });
+                    ui.add_space(6.0);
                 }
             });
-            ui.add_space(6.0);
-        }
         ui.add_space(10.0);
         ui.label(
             egui::RichText::new("Typed on a US keyboard. A key with no rule writes itself.")

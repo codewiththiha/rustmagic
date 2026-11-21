@@ -23,17 +23,43 @@ which is why the bump and the tag come from the same command.
 
 ## What each platform gets
 
+Every platform gets something a person can double-click or hand to their package
+manager. The archives are still built, because automation wants them and because
+they are the smallest thing to inspect, but they are not the headline download.
+
 | Job | Runner | Files | Verified by |
 | --- | --- | --- | --- |
-| `linux` | ubuntu-22.04 | `rustmagic-<v>-linux-x86_64.tar.gz` (+ `.sha256`) | `cargo test`, then `tools/smoke/ibus.sh` over a real D-Bus session |
-| `macos` | macos-latest | `rustmagic-<v>-macos-universal.zip` (+ `.sha256`) | `cargo test`, then `lipo -archs` on each binary to prove both slices are really there |
-| `windows` | windows-latest | `rustmagic-<v>-windows-x86_64.zip` (+ `.sha256`) | `cargo test` |
-| `arch` | `archlinux:latest` container | `rustmagic-<v>-1-x86_64.pkg.tar.zst`, `rustmagic-<v>-PKGBUILD`, `rustmagic-<v>.SRCINFO` | `makepkg` builds the package as a non-root user, after the same tests |
+| `brand` | ubuntu-latest | the icon set as an artifact, not a release asset | `tools/package/check_icon.py` — the rasterised icon must have more than one colour in it |
+| `linux` | ubuntu-22.04 | `rustmagic_<v>_amd64.deb`, `rustmagic-<v>-linux-x86_64.tar.gz` (+ `.sha256`) | `cargo test`, then `tools/smoke/ibus.sh` over a real D-Bus session, then a `dpkg-deb -c` of the `.deb` |
+| `rpm` | ubuntu-latest in a `fedora:latest` container | `rustmagic-<v>-1.x86_64.rpm` | `rpmbuild` exits zero and `rpm -qlp` lists the binaries and the five keyboards |
+| `macos` | macos-latest | `RustMagic-<v>-universal.dmg` (+ `.sha256`), `rustmagic-<v>-macos-universal.zip` | `cargo test`, `lipo -archs` on each binary, then `hdiutil verify` on the disk image |
+| `windows` | windows-latest | `RustMagic-<v>-Setup-x64.exe`, `RustMagic-<v>-x64.msi`, `rustmagic-<v>-windows-x86_64.zip` (+ `.sha256`) | `cargo test`, then Inno Setup and WiX both compile the installers |
+| `arch` | `archlinux:latest` container | `rustmagic-<v>-1-x86_64.pkg.tar.zst`, `PKGBUILD`, `rustmagic.install`, `rustmagic-<v>.SRCINFO`, `rustmagic-<v>.tar.gz` | `makepkg` builds as a non-root user, after the same tests |
 
-The four jobs run in parallel; `publish` waits for all of them and asserts that
-each expected file exists before it turns the draft release public. A job that
-quietly uploads nothing therefore fails the release instead of shipping half of
-one.
+`brand` runs first because the icon is one file that four jobs need: the `.deb`,
+the `.rpm`, the `.dmg` and both Windows installers all take their icons from it.
+The source of truth is `packaging/brand/rustmagic.svg`; nothing rasterised lives
+in the tree. `tools/package/icons.sh` turns it into a 1024 PNG, the PNG sizes
+Windows wants, a `.ico`, and the PNG set `iconutil` needs on macOS, using
+`rsvg-convert` (ImageMagick's SVG renderer silently drops the gradients and
+produces a blank square).
+
+The other six jobs run in parallel; `publish` waits for all of them and asserts
+that each expected file exists before it turns the draft release public. A job
+that quietly uploads nothing therefore fails the release instead of shipping
+half of one.
+
+### Installing each one
+
+| Platform | Download | Install with |
+| --- | --- | --- |
+| Windows | `RustMagic-<v>-Setup-x64.exe` | run it: Start menu entry, Add/Remove Programs entry, optional PATH |
+| Windows, managed | `RustMagic-<v>-x64.msi` | `msiexec /i`, Group Policy, Intune |
+| macOS | `RustMagic-<v>-universal.dmg` | open, drag `RustMagic.app` to Applications |
+| Debian, Ubuntu | `rustmagic_<v>_amd64.deb` | `sudo apt install ./rustmagic_<v>_amd64.deb` |
+| Fedora, RHEL | `rustmagic-<v>-1.x86_64.rpm` | `sudo dnf install ./rustmagic-<v>-1.x86_64.rpm` |
+| Arch | `rustmagic-<v>-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./rustmagic-<v>-1-x86_64.pkg.tar.zst` |
+| Arch, from source | `PKGBUILD` + `rustmagic.install` + `rustmagic-<v>.tar.gz` | `makepkg -si` in that directory |
 
 ### Inside the Linux tarball
 
@@ -48,33 +74,54 @@ rustmagic-<v>-linux-x86_64/
   share/icons/hicolor/scalable/apps/rustmagic-ibus.svg
   lib/libkm_ffi.so         the C ABI, for other input-method frameworks
   include/rustmagic.h      its header
+  keyboards/*.km2          the five bundled layouts, for other tools to read
   INSTALL
 ```
 
 It is a prefix: `tar xf … && cp -r rustmagic-<v>-linux-x86_64/. ~/.local/`.
-`docs/LINUX.md` covers the IBus registration in full.
+The `.deb` and the `.rpm` place the same tree under `/usr`; `libkm_ffi.so` goes
+to `/usr/lib/rustmagic/` rather than `/usr/lib/` because it carries no soname and
+has no business being on the loader's search path. `docs/LINUX.md` covers the
+IBus registration in full.
 
 ### Inside the macOS bundle
 
 `RustMagic.app` (a universal binary, `Contents/MacOS/RustMagic`, `Info.plist`,
-`PkgInfo`, `Resources/RustMagic.icns` built from `packaging/macos/rustmagic.png`
-with `sips` and `iconutil`), plus `bin/` with both universal Mach-O binaries and
+`PkgInfo`, `Resources/RustMagic.icns` built from the brand SVG with `sips` and
+`iconutil`), plus `bin/` with both universal Mach-O binaries and
 `lib/libkm_ffi.dylib`. The bundle is unsigned: on first launch, right-click and
-choose Open.
+choose Open. `tools/package/dmg.sh` wraps it in a volume with an `Applications`
+link so the install is a drag.
 
-### Inside the Windows zip
+### Inside the Windows installers
 
+The `.exe` (Inno Setup) and the `.msi` (WiX) install the same payload:
 `rustmagic.exe`, `rustmagic-cli.exe`, `km_ffi.dll`, `rustmagic.h`,
-`rustmagic.ico`, `INSTALL.txt`.
+`keyboards\*.km2`, `README.md`, `LICENSE`. The portable zip is that set as files,
+with `INSTALL.txt` added. Neither installer is signed.
 
 ### On Arch
 
-The download is the package itself plus the two files needed to rebuild exactly
-it: the `-PKGBUILD` has the version and the checksum of that tag pinned, so
-`makepkg -si` next to it reproduces the same package, and `pacman -U` installs
-the `.pkg.tar.zst` directly. Both `-debug` and the debug symbols are switched
-off, so there is one package and not two. `packaging/arch/PKGBUILD-git` is the
-rolling alternative and is not built by CI.
+Two ways, both from the same release:
+
+```sh
+# the built package
+sudo pacman -U rustmagic-<v>-1-x86_64.pkg.tar.zst
+
+# or build it again from the pinned source
+curl -LO https://github.com/…/releases/download/v<v>/PKGBUILD
+curl -LO https://github.com/…/releases/download/v<v>/rustmagic.install
+curl -LO https://github.com/…/releases/download/v<v>/rustmagic-<v>.tar.gz
+makepkg -si
+```
+
+The published `PKGBUILD` is named `PKGBUILD`, because that is the name `makepkg`
+looks for and renaming it is the first thing a user hits. Its `source=()` names
+the tarball in the same directory, and its `sha256sums=` is the checksum of that
+tarball, so `makepkg -si` works offline from the download folder and then again
+on the next machine. `check()` leaves out `tools/check_repo.py`: it inspects the
+working tree, and a release tarball is not a git checkout. Both `-debug` and the
+debug symbols are switched off, so there is one package and not two.
 
 ## What a release does *not* contain
 
