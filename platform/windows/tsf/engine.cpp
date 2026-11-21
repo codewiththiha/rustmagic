@@ -38,6 +38,11 @@ std::wstring from_utf8(const char *text) {
     return out;
 }
 
+/* An address inside this module, which is all GetModuleHandleExW needs to find
+ * it. A data object rather than a function: converting a function pointer to
+ * the LPCWSTR the API wants is not something every compiler accepts. */
+const int module_anchor = 0;
+
 /* The directory this DLL was loaded from. The installer puts the bundled
  * keyboards next to the DLL, so a user who has never opened the RustMagic
  * window still has something to type with. */
@@ -45,7 +50,7 @@ std::wstring dll_directory() {
     HMODULE module = nullptr;
     if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
                                 GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                            reinterpret_cast<LPCWSTR>(&dll_directory), &module)) {
+                            reinterpret_cast<LPCWSTR>(&module_anchor), &module)) {
         return std::wstring();
     }
     wchar_t path[MAX_PATH * 2] = {};

@@ -257,6 +257,10 @@ jobs:
           done
       - name: test on the host architecture
         run: cargo test --release --locked -p km-core -p km-binary -p km-script -p km-engine -p km-store -p km-session -p ui-egui
+      - name: build the input method
+        # The keyboard macOS calls an input source. Universal, like the app, so
+        # one download runs on Intel and Apple silicon.
+        run: UNIVERSAL=1 sh platform/macos/ime/build.sh dist/ime
       - name: assemble the app
         run: |
           version="${{ steps.version.outputs.version }}"
@@ -289,6 +293,12 @@ jobs:
           install -m644 README.md LICENSE "$out/"
           install -m644 assets/fonts/OFL.txt "$out/OFL-NotoSansMyanmar.txt"
           install -m644 assets/fonts/OFL.txt "$app/Resources/OFL-NotoSansMyanmar.txt"
+          # The input method goes in the same download, next to the app, with the
+          # one command that installs it.
+          install -d "$out/Input Methods"
+          cp -R dist/ime/RustMagicIME.app "$out/Input Methods/"
+          cp platform/macos/ime/install-ime.sh "$out/Input Methods/"
+          chmod +x "$out/Input Methods/install-ime.sh"
           # The .icns comes from the one brand PNG, through Apple's own tools.
           iconset="$(mktemp -d)/RustMagic.iconset"
           mkdir -p "$iconset"
@@ -306,10 +316,13 @@ jobs:
             bin/rustmagic-cli    the command line front end
             lib/libkm_ffi.dylib  the C ABI, for another input-method framework
 
+          Typing everywhere: Input Methods/RustMagicIME.app is an InputMethodKit
+          input method. Run "Input Methods/install-ime.sh" once, then add
+          RustMagic in System Settings > Keyboard > Input Sources (Burmese or
+          English), and it types in every application with whichever keyboard is
+          active in the RustMagic window.
+
           The app is unsigned, so the first launch needs right-click, Open.
-          There is no macOS input method in this release yet: the engine, the
-          window, the CLI and the C ABI work, and system-wide typing is the next
-          piece of work.
           TXT
       - name: sign and notarise, when Apple lets us
         # Without a Developer ID certificate this is a no-op and the bundle ships
@@ -327,6 +340,7 @@ jobs:
           set -eu
           version="${{ steps.version.outputs.version }}"
           bundle="dist/rustmagic-$version-macos-universal/RustMagic.app"
+          ime="dist/rustmagic-$version-macos-universal/Input Methods/RustMagicIME.app"
           if [ -z "${CERTIFICATE:-}" ]; then
             echo "::notice::no Apple certificate, so the app ships unsigned"
             exit 0
@@ -345,22 +359,34 @@ jobs:
           codesign --force --deep --timestamp --options runtime \
             --sign "$SIGNING_IDENTITY" "$bundle"
           codesign --verify --deep --strict --verbose=2 "$bundle"
+          # The input method is a separate bundle, loaded by other applications,
+          # so it needs its own signature and its own notarisation ticket.
+          codesign --force --deep --timestamp --options runtime \
+            --sign "$SIGNING_IDENTITY" "$ime"
+          codesign --verify --deep --strict --verbose=2 "$ime"
           if [ -z "${APPLE_ID:-}" ]; then
             echo "::notice::no notarytool credentials, so the app is signed but not notarised"
             exit 0
           fi
           ditto -c -k --keepParent "$bundle" /tmp/notarise.zip
+          ditto -c -k --keepParent "$ime" /tmp/notarise-ime.zip
           xcrun notarytool submit /tmp/notarise.zip \
             --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APPLE_PASSWORD" \
             --wait
           xcrun stapler staple "$bundle"
           xcrun stapler validate "$bundle"
+          xcrun notarytool submit /tmp/notarise-ime.zip \
+            --apple-id "$APPLE_ID" --team-id "$TEAM_ID" --password "$APPLE_PASSWORD" \
+            --wait
+          xcrun stapler staple "$ime"
+          xcrun stapler validate "$ime"
           security delete-keychain "$keychain"
       - name: make the disk image and the archive
         run: |
           version="${{ steps.version.outputs.version }}"
           out="dist/rustmagic-$version-macos-universal"
-          tools/package/dmg.sh "$version" "$out/RustMagic.app" "dist/RustMagic-$version-universal.dmg"
+          tools/package/dmg.sh "$version" "$out/RustMagic.app" \
+            "dist/RustMagic-$version-universal.dmg" "$out/Input Methods"
           zip -qry "$out.zip" "$out"
           shasum -a 256 "$out.zip" > "$out.zip.sha256"
           ls -l dist/*.dmg dist/*.zip

@@ -1,0 +1,133 @@
+RustMagic on macOS: installing the keyboard as a system input method
+====================================================================
+
+This folder builds RustMagicIME.app. macOS calls this an input source: once it
+is in ~/Library/Input Methods and added in System Settings, RustMagic types in
+every application — TextEdit, Safari, Mail, Xcode, Terminal, anything with a
+text field — using whichever keyboard is active in the RustMagic window.
+
+Building
+--------
+
+    sh platform/macos/ime/build.sh            # host architecture
+    UNIVERSAL=1 sh platform/macos/ime/build.sh  # Intel and Apple silicon
+
+Needs the Xcode command line tools (swiftc) and cargo. The script builds the
+engine (km-ffi), compiles the Swift input method against it, and assembles the
+bundle:
+
+    build/macos/RustMagicIME.app/Contents/
+        MacOS/RustMagicIME            the input method
+        Frameworks/libkm_ffi.dylib    the engine
+        Resources/keyboards/*.km2     the five bundled layouts
+        Resources/include/rustmagic.h the C ABI header
+        Info.plist                    what makes macOS see an input method
+
+The engine is copied inside the bundle and reached through @rpath, so the app
+does not depend on anything outside itself and a signed copy runs on a machine
+that never built it.
+
+Installing
+----------
+
+    sh platform/macos/ime/install-ime.sh
+
+That copies the bundle into ~/Library/Input Methods. No administrator rights and
+no installer: that folder is the whole mechanism, which is why the .dmg ships
+the bundle next to the app instead of demanding an elevated installer.
+
+Then, once:
+
+  System Settings > Keyboard > Text Input > Input Sources > +
+  choose Burmese (or English) > RustMagic > Add
+
+Switch to it with Control+Space or the input menu in the menu bar. The release
+ships the bundle signed and notarised when Apple certificates are configured;
+without them macOS refuses the first launch until it is allowed in
+Privacy & Security, the same as any other downloaded app.
+
+What macOS is told about this bundle, and why
+---------------------------------------------
+
+  InputMethodConnectionName        "RustMagic_1_Connection", the rendezvous
+                                   IMKServer opens; the system finds the server
+                                   process by it.
+  InputMethodServerControllerClass "RustMagicInputController", the IMKInputController
+                                   subclass that receives every key.
+  tsInputMethodCharacterRepertoireKey  ["Mymr"], the script it writes, so macOS
+                                   offers it for Burmese text fields.
+  TISIntendedLanguage              "my", so it is listed under Burmese.
+  LSBackgroundOnly / LSUIElement   an input method has no window of its own.
+
+The keyboards
+-------------
+
+It types with whichever keyboard is active in the RustMagic window, read from
+~/Library/Application Support/RustMagic/settings.toml. With nothing there it
+uses the first .km2 in that folder, then the copies inside its own Resources, so
+a fresh install types immediately. Changing keyboards in the window takes effect
+at the next focus change or key: the engine is reloaded.
+
+Keys and syllables
+------------------
+
+macOS reports a hardware key position; the keyboards are written against Windows
+virtual-key codes, so every event is translated first (Keycodes.swift, the two
+published tables side by side). Escape throws the composition away, space, tab
+and enter end the syllable and reach the application unchanged, navigation and
+Command/Control shortcuts commit and pass through, Backspace deletes by rule when
+the engine has one. The composed text is marked text: the application draws it
+underlined, and it becomes ordinary text on commit — including when the user
+switches input source or clicks into another window mid-syllable.
+
+Alternative modifier: macOS has no AltGr, so the Option key takes that role and
+reaches the characters the plain layout does not have.
+
+Verifying
+---------
+
+The CI job "the keyboard speaks InputMethodKit" builds the bundle, checks that
+the Info.plist keys are present, that the signature verifies, that the
+executable refers to the engine by @rpath and not by a build path, that the five
+keyboards are inside, then installs it into ~/Library/Input Methods and runs
+tools/smoke/tis.swift. That test asks Text Input Source Services — the API
+System Settings uses — whether the input method is listed, is in the keyboard
+category, declares Burmese, can be enabled, can be selected, has input modes,
+and then puts the previous input source back.
+
+What it does not do is type. A keystroke landing in a document needs a focused
+text field and a keyboard, so that check is a human one:
+
+  - TextEdit: type "mingalarpar" with the Pyidaungsu keyboard active; the text
+    is marked, underlined, and commits on space.
+  - Safari: the same in a web form, which is a different text input client.
+  - Control+Space away mid-syllable: the composition commits instead of
+    following the focus.
+  - Terminal: the same again, and Option+key still reaches the layout's
+    alternate characters.
+
+Known limits, stated rather than hidden
+---------------------------------------
+
+  - Password fields and secure input refuse third-party input methods by design;
+    typing there falls back to the layout macOS itself is using. That is macOS
+    protecting the user, not a missing feature.
+  - Some applications take their key handling entirely into their own hands
+    (a few games, some Electron apps in specific modes). Input methods that do
+    not use the system text input client cannot reach those, and neither can
+    the ones Apple ships.
+  - The composition cannot erase text that was typed before it started: a rule
+    that matches backwards past the beginning of the syllable is clamped to the
+    marked text. The TSF service has the same boundary.
+  - Two applications focused in turn: each reloads the active keyboard when it
+    gets focus, so switching keyboards in the window costs nothing but a
+    keystroke of delay in the app that is already open.
+
+Uninstalling
+------------
+
+    rm -rf ~/Library/Input\ Methods/RustMagicIME.app
+    killall -HUP TextInputMenuAgent
+
+Then remove RustMagic from Input Sources in System Settings if it is still
+listed; the entry disappears once the bundle is gone.

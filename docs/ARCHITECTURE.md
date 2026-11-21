@@ -129,6 +129,21 @@ events into `Session` calls. It is deliberately glib-free: the protocol is the
 interface, which is what lets `tools/smoke/ibus.sh` drive it from a C client and
 check the replies with libibus itself.
 
+`platform/windows/tsf` and `platform/macos/ime` are the other two input methods,
+and they are outside the Cargo workspace on purpose: one is a COM in-process
+server built by CMake against `msctf.h`, the other a Swift bundle built by
+`swiftc` against `InputMethodKit`. Neither carries a rule. Both link the same
+`km-ffi` and do the same three things a host does — find the keyboard that is
+active, hand each key over, and write the answer into a composition the
+application draws differently until it commits. That is the whole point of the C
+ABI: a platform service is a translation layer from one operating system's idea
+of "text being typed" to `rm_engine_key`.
+
+Their registration is the part that is not shared: Windows wants a CLSID, a
+language profile and a category; macOS wants an `Info.plist` in
+`~/Library/Input Methods` with a connection name. Neither has an equivalent on
+Linux, where the D-Bus engine in `km-ibus` plays the same part.
+
 `apps/rustmagic` is an eframe shell plus a `Host` implementation: real state
 directories per platform, a clipboard handed to egui on the next frame, an
 external opener per platform, and the bundled demo keyboard installed on first

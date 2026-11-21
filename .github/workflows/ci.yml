@@ -233,6 +233,60 @@ jobs:
           if (Test-Path $key) { throw "the CLSID is still registered after uninstall" }
           Write-Host "unregistered, and nothing was left behind"
 
+  ime:
+    name: the keyboard speaks InputMethodKit
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: build the input method
+        run: sh platform/macos/ime/build.sh
+      - name: the bundle is a bundle
+        run: |
+          set -eu
+          app=build/macos/RustMagicIME.app
+          test -x "$app/Contents/MacOS/RustMagicIME"
+          # The plist keys are what make macOS treat this as an input method at
+          # all; plutil also catches a plist with a syntax error.
+          plutil -lint "$app/Contents/Info.plist"
+          for key in InputMethodConnectionName InputMethodServerControllerClass \
+                     tsInputMethodCharacterRepertoireKey TISIntendedLanguage; do
+            /usr/libexec/PlistBuddy -c "Print :$key" "$app/Contents/Info.plist" >/dev/null
+          done
+          # A signature is not optional: an unsigned input method is never loaded.
+          codesign --verify --deep --strict "$app"
+          # The engine is inside the bundle and referenced by rpath, so the app
+          # does not depend on the machine that built it.
+          otool -L "$app/Contents/MacOS/RustMagicIME" | grep -q '@rpath/libkm_ffi.dylib'
+          if otool -L "$app/Contents/MacOS/RustMagicIME" | grep -q "$PWD"; then
+            echo "::error::the executable still points into the build tree"
+            exit 1
+          fi
+          test -s "$app/Contents/Frameworks/libkm_ffi.dylib"
+          # The five bundled layouts travel with it, so a fresh install types.
+          test "$(ls "$app/Contents/Resources/keyboards"/*.km2 | wc -l)" -eq 5
+      - name: macOS accepts it as an input method
+        run: |
+          set -eu
+          mkdir -p "$HOME/Library/Input Methods"
+          cp -R build/macos/RustMagicIME.app "$HOME/Library/Input Methods/"
+          swiftc -O -framework Carbon tools/smoke/tis.swift -o build/tis-smoke
+          # The test selects the input method and puts the previous one back, so
+          # a developer running it on a laptop is not left in Burmese mode.
+          ./build/tis-smoke
+      - name: it unloads when removed
+        run: |
+          set -eu
+          rm -rf "$HOME/Library/Input Methods/RustMagicIME.app"
+          killall -HUP TextInputMenuAgent || true
+          # Nothing may keep the bundle mapped or hold a handler for it.
+          if pgrep -f RustMagicIME.app/Contents/MacOS/RustMagicIME >/dev/null; then
+            echo "::error::the input method is still running after being removed"
+            exit 1
+          fi
+          echo "removed, and nothing was left running"
+
   abi:
     name: the C ABI links
     runs-on: ubuntu-latest

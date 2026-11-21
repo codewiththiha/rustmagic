@@ -23,6 +23,7 @@
 #include "../../platform/windows/tsf/tsf_compat.h"
 
 #include <cstdio>
+#include <cwchar>
 #include <string>
 
 /* The service's identity; duplicated here on purpose so the test fails loudly

@@ -134,8 +134,6 @@ if(RUSTMAGIC_ICON_FILE)
     get_filename_component(ICON_NAME "${RUSTMAGIC_ICON_FILE}" NAME)
     configure_file(resource.rc.in "${CMAKE_CURRENT_BINARY_DIR}/resource.rc" @ONLY)
     target_sources(RustMagicTSF PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/resource.rc")
-    set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/resource.rc" PROPERTIES
-        COMPILE_FLAGS "/I\"${ICON_DIR}\"")
     target_include_directories(RustMagicTSF PRIVATE "${ICON_DIR}")
     if(RSVG_CONVERT AND NOT RUSTMAGIC_ICON)
         add_dependencies(RustMagicTSF rustmagic_icon)

@@ -169,18 +169,40 @@ the three binaries are an application, not a library.
 A crate is never republished: the script skips a version the index already has,
 so re-running a half-finished release finishes the rest instead of failing.
 
-## What a release does *not* contain
+## The platform input methods, and what a release proves about them
 
-Two things, still, and both are platform components rather than loose ends:
+Both of them ship now. They are the pieces that make a keyboard a keyboard rather
+than a preview window with a layout in it:
 
-- **No Windows TSF text service.** The window, the CLI and the C ABI work. A TSF
-  service is a COM in-process server (`ITfTextInputProcessorEx`,
-  `ITfKeyEventSink`, `ITfComposition`) registered under the TSF category, and it
-  needs a Windows machine to test; shipping one that has never typed a character
-  would be worse than the honest gap.
-- **No macOS input method.** The same shape of work through `InputMethodKit`
-  (`IMKServer`, `IMKInputController`) inside the app bundle, and the same reason
-  for waiting.
+- **Windows**, `platform/windows/tsf`: a TSF text service,
+  `RustMagicTSF.dll`. `DllRegisterServer` writes the CLSID, registers the
+  language profile through `ITfInputProcessorProfiles` and registers the service
+  under `GUID_TFCAT_TIP_KEYBOARD`, the immersive and systray capability
+  categories and the display attribute provider category — which is what puts
+  RustMagic in Settings and the language bar and lets packaged apps use it. Keys
+  arrive through `ITfKeyEventSink`, are answered by the engine, and are shown as
+  a composition with a display attribute until a key ends the syllable. The
+  installer registers it with `regsvr32`, so there is no separate step.
+- **macOS**, `platform/macos/ime`: an `InputMethodKit` bundle,
+  `RustMagicIME.app`. `Info.plist` declares the connection name, the controller
+  class, the script and the language; the controller receives `handle(_:client:)`
+  and drives marked text through the client. The .dmg carries the bundle and a
+  one-line script that installs it into `~/Library/Input Methods`.
+
+The CI jobs named "the keyboard speaks TSF" and "the keyboard speaks
+InputMethodKit" build them and then ask the operating system, not the source
+tree, whether they are real: the Windows job checks the `InprocServer32` path,
+the keyboard category and the language profile through the TSF APIs and
+activates the service inside a live thread manager; the macOS job checks the
+bundle, its signature and its `Info.plist`, installs it, and queries Text Input
+Source Services for the category, the language, whether it enables and whether it
+selects.
+
+Neither job types a character, because there is no focused text field on a
+runner to type into. That part stays a human check, and
+`platform/windows/tsf/INSTALL.txt` and `platform/macos/ime/INSTALL.txt` list
+exactly which checks those are, so a release note never claims more than the
+build proved.
 
 Everything else on the list below is now in the release: installers for every
 platform, ARM64 and musl builds, GPG signatures, Authenticode and notarisation

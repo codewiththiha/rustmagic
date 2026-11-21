@@ -1,7 +1,11 @@
 #!/bin/sh
 # Builds RustMagic-<version>.dmg around a finished RustMagic.app.
 #
-#   tools/package/dmg.sh <version> <app-bundle> <output.dmg>
+#   tools/package/dmg.sh <version> <app-bundle> <output.dmg> [extra...]
+#
+# Anything after the output path is copied next to the app in the volume — the
+# input method, for instance, which macOS wants in ~/Library/Input Methods rather
+# than /Applications.
 #
 # A .dmg is what a Mac user expects to download: open it, drag the app to
 # Applications, eject. The zip stays around for people who automate, but nobody
@@ -17,6 +21,10 @@ trap 'rm -rf "$work"' EXIT
 stage="$work/RustMagic"
 mkdir -p "$stage"
 cp -R "$app" "$stage/"
+shift 3
+for extra in "$@"; do
+    cp -R "$extra" "$stage/"
+done
 ln -s /Applications "$stage/Applications"
 
 # No Finder scripting: on a headless runner it fails more often than it works,

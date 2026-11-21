@@ -95,9 +95,11 @@ also lives on crates.io: `km-engine`, `km-binary`, `km-script`, `km-core` and
 `git push origin v0.2.0` builds all of them — one job per platform, the Arch one
 in a container, the icons once for every installer — and publishes a single
 release once every artifact is present.
-System-wide typing is IBus-only for now: the Windows TSF service and the macOS
-input method are the remaining pieces of platform parity, and
-[docs/RELEASING.md](docs/RELEASING.md) says so in the release itself.
+System-wide typing works on all three: IBus on Linux, a TSF text service on
+Windows (`platform/windows/tsf`) and an InputMethodKit bundle on macOS
+(`platform/macos/ime`). Each one is selectable in its system's own keyboard
+settings and types in other applications; the two INSTALL files say how they are
+installed and what a test can and cannot prove about them.
 
 ## Working on it
 

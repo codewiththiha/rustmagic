@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  RustMagicIME is an input method: a background app in
+	  ~/Library/Input Methods that macOS loads when the user selects RustMagic
+	  in System Settings > Keyboard > Input Sources.
+
+	  InputMethodConnectionName must match the name main.swift hands IMKServer,
+	  because that is the rendezvous the system uses to reach this process.
+	  InputMethodServerControllerClass names the IMKInputController subclass
+	  that will receive the keys.
+	-->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>RustMagicIME</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.rustmagic.inputmethod.RustMagic</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>RustMagic</string>
+	<key>CFBundleDisplayName</key>
+	<string>RustMagic</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>0.1.0</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>11.0</string>
+	<!-- An input method never has a window of its own. -->
+	<key>LSBackgroundOnly</key>
+	<true/>
+	<key>LSUIElement</key>
+	<true/>
+	<!-- The rendezvous with IMKServer, and the class that handles the keys. -->
+	<key>InputMethodConnectionName</key>
+	<string>RustMagic_1_Connection</string>
+	<key>InputMethodServerControllerClass</key>
+	<string>RustMagicInputController</string>
+	<!-- What this input method writes, and the language it is intended for.
+	     The repertoire is the script the keyboards produce, so macOS offers it
+	     for Burmese text fields and lists it under Burmese in Input Sources. -->
+	<key>tsInputMethodCharacterRepertoireKey</key>
+	<array>
+		<string>Mymr</string>
+	</array>
+	<key>TISIntendedLanguage</key>
+	<string>my</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSSupportsAutomaticTermination</key>
+	<false/>
+	<key>NSSupportsSuddenTermination</key>
+	<false/>
+</dict>
+</plist>

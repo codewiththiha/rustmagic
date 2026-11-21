@@ -150,7 +150,8 @@ uses.
 | Rule matching, priorities, switches, recursion | complete, with the divergences listed in [ENGINE_SEMANTICS.md](ENGINE_SEMANTICS.md) |
 | Metadata, hotkeys, icons | metadata and hotkeys complete; icon bytes are carried through unparsed |
 | Linux input method (IBus) | complete: `km-ibus` plus an Arch package, driven by a libibus smoke test |
-| Platform text services (TSF, macOS) | not written here; the C ABI is the seam where they attach |
+| Windows text service (TSF) | complete: `platform/windows/tsf`, registered as a keyboard TIP, driven by `keys` and not by a window |
+| macOS input method (InputMethodKit) | complete: `platform/macos/ime`, an input source that marks and commits text |
 | The original's settings window | replaced by `km-session` + `ui-egui` |
 | Keyboard manager dialogs (hotkey capture, layout preview) | preview and hotkey display present; hotkey recording is not |
 
