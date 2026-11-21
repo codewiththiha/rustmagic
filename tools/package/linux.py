@@ -38,6 +38,20 @@ ROOT = Path(__file__).resolve().parents[2]
 
 BINARIES = ("rustmagic", "rustmagic-cli", "rustmagic-ibus")
 
+
+def ffi_library(binaries: Path) -> tuple[Path, str]:
+    """The C ABI of this build: a shared object, or a static archive on musl.
+
+    Rust has no `cdylib` for a musl target, so a static build has an archive and
+    no `.so`. Shipping the archive under its own name is honest; naming it
+    libkm_ffi.so would be a lie a linker would later discover.
+    """
+    for name in ("libkm_ffi.so", "libkm_ffi.a"):
+        candidate = binaries / name
+        if candidate.exists():
+            return candidate, name
+    raise SystemExit(f"no C ABI library in {binaries}: neither libkm_ffi.so nor libkm_ffi.a")
+
 # uname-style architecture to the name Debian uses in `Architecture:`.
 DEB_ARCH = {"x86_64": "amd64", "aarch64": "arm64", "i686": "i386"}
 KEYBOARDS = "keyboards/bundled"
@@ -128,7 +142,11 @@ def fill_portable(tree: Path, binaries: Path, version: str) -> None:
 
     for binary in BINARIES:
         install(binaries / binary, tree / "bin" / binary, 0o755)
-    install(binaries / "libkm_ffi.so", tree / "lib/libkm_ffi.so", 0o644)
+    library, library_name = ffi_library(binaries)
+    install(library, tree / "lib" / library_name, 0o644)
+    # Laid out as a column in the INSTALL text; a musl archive is one character
+    # shorter than the shared object it replaces.
+    library_column = f"{'lib/' + library_name:<21}"
     install(ROOT / "crates/km-ffi/include/rustmagic.h", tree / "include/rustmagic.h", 0o644)
     install(ROOT / "assets/ibus/rustmagic.xml", share / "ibus/component/rustmagic.xml", 0o644)
     install(
@@ -157,7 +175,7 @@ def fill_portable(tree: Path, binaries: Path, version: str) -> None:
   bin/rustmagic-cli      the same thing in a terminal
   bin/rustmagic-ibus     the input method IBus starts
   share/rustmagic/keyboards/   the keyboards that ship with it
-  lib/libkm_ffi.so       the C ABI, for another input-method framework
+  {library_column} the C ABI, for another input-method framework
   include/rustmagic.h    its header
   LICENSE                the licence of this program
   OFL-NotoSansMyanmar.txt  the licence of the font compiled into it
@@ -204,7 +222,8 @@ def fill_debian(
     # package must not pretend it is a system library.
     library = tree / "usr/lib/rustmagic"
     library.mkdir(parents=True, exist_ok=True)
-    shutil.move(str(tree / "lib/libkm_ffi.so"), library / "libkm_ffi.so")
+    _, library_name = ffi_library(binaries)
+    shutil.move(str(tree / "lib" / library_name), library / library_name)
     (tree / "lib").rmdir()
     (tree / "usr/include").mkdir(parents=True, exist_ok=True)
     shutil.move(str(tree / "include/rustmagic.h"), tree / "usr/include/rustmagic.h")

@@ -135,6 +135,29 @@ target_link_libraries(RustMagicTSF PRIVATE
     ole32 oleaut32 uuid advapi32 shlwapi user32 kernel32
     ws2_32 userenv bcrypt ntdll synchronization)
 
+# The version Explorer reads in the DLL's properties has to be the version that
+# was built, so it comes from the workspace manifest rather than a literal that
+# goes stale in the file. `-DRUSTMAGIC_VERSION=` overrides it.
+#
+# The match is scoped to `[workspace.package]` and written without escapes, so
+# it cannot pick up a dependency's version from higher in the file.
+if(NOT RUSTMAGIC_VERSION)
+    file(READ "${REPO_ROOT}/Cargo.toml" RUSTMAGIC_MANIFEST)
+    string(FIND "${RUSTMAGIC_MANIFEST}" "[workspace.package]" RUSTMAGIC_AT)
+    string(SUBSTRING "${RUSTMAGIC_MANIFEST}" ${RUSTMAGIC_AT} 400 RUSTMAGIC_PACKAGE)
+    string(REGEX MATCH "version = [^0-9]*([0-9]+[.][0-9]+[.][0-9]+)" RUSTMAGIC_MATCH "${RUSTMAGIC_PACKAGE}")
+    set(RUSTMAGIC_VERSION "${CMAKE_MATCH_1}")
+endif()
+if(NOT RUSTMAGIC_VERSION)
+    message(FATAL_ERROR "no version: pass -DRUSTMAGIC_VERSION=x.y.z")
+endif()
+string(REPLACE "." ";" RUSTMAGIC_VERSION_PARTS "${RUSTMAGIC_VERSION}")
+list(GET RUSTMAGIC_VERSION_PARTS 0 RUSTMAGIC_MAJOR)
+list(GET RUSTMAGIC_VERSION_PARTS 1 RUSTMAGIC_MINOR)
+list(GET RUSTMAGIC_VERSION_PARTS 2 RUSTMAGIC_PATCH)
+set(RUSTMAGIC_FILEVERSION "${RUSTMAGIC_MAJOR},${RUSTMAGIC_MINOR},${RUSTMAGIC_PATCH},0")
+set(RUSTMAGIC_TSF_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}")
+
 if(RUSTMAGIC_ICON_FILE)
     get_filename_component(ICON_DIR "${RUSTMAGIC_ICON_FILE}" DIRECTORY)
     get_filename_component(ICON_NAME "${RUSTMAGIC_ICON_FILE}" NAME)

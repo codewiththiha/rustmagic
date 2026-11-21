@@ -230,6 +230,13 @@ def check_release() -> list[str]:
                 # fails at `makepkg -si`, which is how a user finds out.
                 if not (pkgbuild.parent / script).exists():
                     problems.append(f"PKGBUILD installs {script}, which is not beside it")
+    resource = ROOT / "platform" / "windows" / "tsf" / "resource.rc.in"
+    if resource.exists():
+        text = resource.read_text(encoding="utf-8")
+        # The version Explorer shows in the DLL's properties is stamped at build
+        # time from the manifest; a literal here ships last release's number.
+        if "@RUSTMAGIC_VERSION@" not in text:
+            problems.append("platform/windows/tsf/resource.rc.in does not take its version from the build")
     workspace = ROOT / "Cargo.toml"
     if workspace.exists():
         try:

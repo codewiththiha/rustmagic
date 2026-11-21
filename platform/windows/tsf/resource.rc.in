@@ -8,13 +8,16 @@
  */
 
 #include <winver.h>
-#include "resource_ids.h"
+/* An absolute path: the generated copy lives in the build directory, and the
+ * resource compiler does not inherit the include directories a C++ target sets,
+ * so a bare name finds nothing but a file that happens to sit beside it. */
+#include "@RUSTMAGIC_TSF_SOURCE@/resource_ids.h"
 
 RUSTMAGIC_ICON ICON "@ICON_NAME@"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,0,0
- PRODUCTVERSION 0,1,0,0
+ FILEVERSION @RUSTMAGIC_FILEVERSION@
+ PRODUCTVERSION @RUSTMAGIC_FILEVERSION@
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x0L
  FILEOS VOS_NT_WINDOWS32
@@ -27,11 +30,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "RustMagic"
             VALUE "FileDescription", "RustMagic keyboard text service"
-            VALUE "FileVersion", "0.1.0"
+            VALUE "FileVersion", "@RUSTMAGIC_VERSION@"
             VALUE "InternalName", "RustMagicTSF"
             VALUE "OriginalFilename", "RustMagicTSF.dll"
             VALUE "ProductName", "RustMagic"
-            VALUE "ProductVersion", "0.1.0"
+            VALUE "ProductVersion", "@RUSTMAGIC_VERSION@"
         END
     END
     BLOCK "VarFileInfo"

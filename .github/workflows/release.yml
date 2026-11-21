@@ -140,7 +140,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          tag="${{ github.event.inputs.tag || github.ref }}"
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
       - name: cross, pinned
@@ -197,7 +197,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          tag="${{ github.event.inputs.tag || github.ref }}"
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
       - name: rpmbuild
@@ -246,7 +246,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          tag="${{ github.event.inputs.tag || github.ref }}"
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
       - name: build both architectures
@@ -418,7 +418,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          tag="${{ github.event.inputs.tag || github.ref }}"
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
       - name: build
