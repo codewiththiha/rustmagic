@@ -233,6 +233,25 @@ jobs:
           if (Test-Path $key) { throw "the CLSID is still registered after uninstall" }
           Write-Host "unregistered, and nothing was left behind"
 
+  tsf-com:
+    name: the keyboard registers without Windows
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+      - uses: Swatinem/rust-cache@v2
+      - name: a Windows toolchain and a Windows API
+        # mingw builds the DLL on Linux; Wine is what loads it, registers it and
+        # answers the TSF questions. This is the half of the Windows story that
+        # does not need a Windows machine.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mingw-w64 wine64
+      - name: the COM surface and the registration
+        run: sh tools/smoke/tsf-com.sh
+
   ime:
     name: the keyboard speaks InputMethodKit
     runs-on: macos-latest

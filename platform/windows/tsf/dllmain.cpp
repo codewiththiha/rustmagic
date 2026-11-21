@@ -102,24 +102,37 @@ HRESULT register_with_tsf() {
                                            reinterpret_cast<void **>(&manager))) &&
         manager != nullptr;
 
+    HRESULT profile_result = S_OK;
     for (int index = 0; index < RUSTMAGIC_LANGUAGES_COUNT; ++index) {
         const LANGID language = RUSTMAGIC_LANGUAGES[index];
+        HRESULT added = E_NOTIMPL;
         if (have_manager) {
-            manager->RegisterProfile(CLSID_RustMagicTextService, language, GUID_RustMagicProfile,
-                                     description.c_str(), static_cast<ULONG>(description.size()),
-                                     dll.c_str(), static_cast<ULONG>(dll.size()), 0, nullptr, 0,
-                                     TRUE, 0);
-        } else {
-            profiles->AddLanguageProfile(CLSID_RustMagicTextService, language, GUID_RustMagicProfile,
-                                         description.c_str(),
-                                         static_cast<ULONG>(description.size()), dll.c_str(),
-                                         static_cast<ULONG>(dll.size()), 0);
+            added = manager->RegisterProfile(
+                CLSID_RustMagicTextService, language, GUID_RustMagicProfile, description.c_str(),
+                static_cast<ULONG>(description.size()), dll.c_str(),
+                static_cast<ULONG>(dll.size()), 0, nullptr, 0, TRUE, 0);
+        }
+        /* The profile manager is not implemented everywhere — it is missing on
+         * older builds and incomplete in others — and a profile that fails to
+         * register is a keyboard the user cannot pick, so fall back rather than
+         * leave one behind. */
+        if (FAILED(added)) {
+            added = profiles->AddLanguageProfile(
+                CLSID_RustMagicTextService, language, GUID_RustMagicProfile, description.c_str(),
+                static_cast<ULONG>(description.size()), dll.c_str(),
+                static_cast<ULONG>(dll.size()), 0);
+        }
+        if (FAILED(added) && SUCCEEDED(profile_result)) {
+            profile_result = added;
         }
     }
     if (manager != nullptr) {
         manager->Release();
     }
     profiles->Release();
+    if (FAILED(profile_result)) {
+        return profile_result;
+    }
 
     ITfCategoryMgr *categories = nullptr;
     result = CoCreateInstance(CLSID_TF_CategoryMgr, nullptr, CLSCTX_INPROC_SERVER,
@@ -127,8 +140,11 @@ HRESULT register_with_tsf() {
     if (FAILED(result) || categories == nullptr) {
         return result;
     }
-    categories->RegisterCategory(CLSID_RustMagicTextService, GUID_TFCAT_TIP_KEYBOARD,
-                                 CLSID_RustMagicTextService);
+    /* The keyboard category is the one the list of input methods is built from,
+     * so its failure is the registration's failure; the rest are refinements
+     * and are reported by their result alone. */
+    HRESULT category_result = categories->RegisterCategory(
+        CLSID_RustMagicTextService, GUID_TFCAT_TIP_KEYBOARD, CLSID_RustMagicTextService);
     categories->RegisterCategory(CLSID_RustMagicTextService, GUID_TFCAT_TIPCAP_IMMERSIVESUPPORT,
                                  CLSID_RustMagicTextService);
     categories->RegisterCategory(CLSID_RustMagicTextService, GUID_TFCAT_TIPCAP_SYSTRAYSUPPORT,
@@ -136,7 +152,7 @@ HRESULT register_with_tsf() {
     categories->RegisterCategory(CLSID_RustMagicTextService, GUID_TFCAT_DISPLAYATTRIBUTEPROVIDER,
                                  GUID_RustMagicDisplayAttribute);
     categories->Release();
-    return S_OK;
+    return category_result;
 }
 
 HRESULT unregister_from_tsf() {
