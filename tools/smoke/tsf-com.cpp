@@ -56,6 +56,7 @@ const GUID kDisplayAttributeProvider = {0xfee47777, 0x163c, 0x4769, {0x99, 0x6a,
 const GUID kKeyboardCategory = {0x34745c63, 0xb2f0, 0x4784, {0x8b, 0x67, 0x5e, 0x12, 0xc8, 0x70, 0x1a, 0x31}};
 const CLSID kProfilesClsid = {0x33c53a50, 0xf456, 0x4884, {0xb0, 0x49, 0x85, 0xfd, 0x64, 0x3e, 0xcf, 0xed}};
 const IID kProfilesIid = {0x1f02b6c5, 0x7842, 0x4ee6, {0x8a, 0x0b, 0x9a, 0x24, 0x18, 0x3a, 0x95, 0xca}};
+const CLSID kThreadMgrClsid = {0x529a9e6b, 0x6587, 0x4f23, {0xab, 0x9e, 0x9c, 0x7d, 0x68, 0x3e, 0x3c, 0x50}};
 const CLSID kCategoryMgrClsid = {0xa4b544a1, 0x438d, 0x4b41, {0x93, 0x25, 0x86, 0x95, 0x23, 0xe2, 0xd6, 0xc7}};
 const IID kCategoryMgrIid = {0xc3acefb5, 0xf69d, 0x4905, {0x93, 0x8f, 0xfc, 0xad, 0xcf, 0x4b, 0xe8, 0x30}};
 
@@ -92,6 +93,63 @@ bool clsid_registered() {
     }
     RegCloseKey(key);
     return true;
+}
+
+/* Activation is where a text service advises the keystroke manager and the
+ * thread manager that it wants to hear from them. Getting that wrong is how a
+ * service either never sees a key or crashes on the first focus change, so it is
+ * worth driving even where there is no document to type into. */
+void activation(IClassFactory *factory) {
+    ITfThreadMgr *thread_mgr = nullptr;
+    HRESULT hr = CoCreateInstance(kThreadMgrClsid, nullptr, CLSCTX_INPROC_SERVER, IID_ITfThreadMgr,
+                                  reinterpret_cast<void **>(&thread_mgr));
+    if (FAILED(hr) || thread_mgr == nullptr) {
+        std::printf("SKIP  a TSF thread manager is available (this host has none)\n");
+        return;
+    }
+    check("a TSF thread manager is available", true);
+
+    TfClientId client_id = 0;
+    hr = thread_mgr->Activate(&client_id);
+    check("the thread manager activates this thread", SUCCEEDED(hr) && client_id != 0);
+
+    IUnknown *service = nullptr;
+    hr = factory->CreateInstance(nullptr, IID_IUnknown, reinterpret_cast<void **>(&service));
+    if (SUCCEEDED(hr) && service != nullptr) {
+        ITfTextInputProcessor *processor = nullptr;
+        if (SUCCEEDED(service->QueryInterface(kTextInputProcessor,
+                                             reinterpret_cast<void **>(&processor))) &&
+            processor != nullptr) {
+            hr = processor->Activate(thread_mgr, client_id);
+            check("the service activates inside the thread manager", SUCCEEDED(hr));
+            if (SUCCEEDED(hr)) {
+                ITfKeyEventSink *keys = nullptr;
+                if (SUCCEEDED(service->QueryInterface(kKeyEventSink,
+                                                      reinterpret_cast<void **>(&keys))) &&
+                    keys != nullptr) {
+                    /* The framework asks this before it asks for the key. With
+                     * no keyboard installed nothing may be claimed, or the
+                     * service swallows every keystroke in every application. */
+                    BOOL eaten = TRUE;
+                    keys->OnTestKeyDown(nullptr, 'A', 0, &eaten);
+                    check("a test key down with no text field is not claimed", eaten == FALSE);
+
+                    /* Shift is never claimed: it is a modifier, not text. */
+                    eaten = TRUE;
+                    keys->OnTestKeyDown(nullptr, VK_SHIFT, 0, &eaten);
+                    check("a modifier is never claimed", eaten == FALSE);
+                    keys->OnSetFocus(TRUE);
+                    keys->Release();
+                }
+                hr = processor->Deactivate();
+                check("the service deactivates", SUCCEEDED(hr));
+            }
+            processor->Release();
+        }
+        service->Release();
+    }
+    thread_mgr->Deactivate();
+    thread_mgr->Release();
 }
 
 /* Is the profile in the store, for a language it was registered under? */
@@ -229,6 +287,7 @@ int main(int argc, char **argv) {
         check("the DLL is not unloadable while it lives", can_unload() != S_OK);
         service->Release();
     }
+    activation(factory);
     factory->Release();
     check("the DLL is unloadable afterwards", can_unload() == S_OK);
 

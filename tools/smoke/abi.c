@@ -31,8 +31,15 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    /* The question a Windows text service asks before it claims a key, and the
+     * answer, which must agree with what processing the key then does. */
+    int would = rm_engine_key_test(engine, 'A', 'a', 0, 0, 0, 0, 0);
+    printf("would key a be taken: %d\n", would);
+
     rm_edit edit = {0, NULL, 0, 0};
     int consumed = rm_engine_key(engine, 'A', 'a', 0, 0, 0, 0, 0, &edit);
+    printf("agrees: %s\n", would == consumed ? "yes" : "no");
+    if (would != consumed) return 1;
     printf("key a: consumed=%d erase=%zu insert=\"%s\"\n", consumed, edit.erase,
            edit.insert != NULL ? edit.insert : "");
     if (edit.insert != NULL) rm_string_free(edit.insert);

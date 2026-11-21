@@ -91,7 +91,20 @@ inside a real thread manager. It prints PASS or FAIL per check and exits
 non-zero on any failure. The CI job "the keyboard speaks TSF" runs exactly this
 on windows-latest.
 
-What that test does not do is type. It has no window and no focus, so it cannot
+Without Windows, the same sources can still be checked:
+
+    tools/smoke/tsf-com.sh        (needs mingw-w64 and wine64)
+
+It cross-compiles the DLL with mingw, loads it under Wine, checks the COM surface
+against the published interface identifiers, registers it, reads the CLSID and the
+language profile back out of the TSF stores, creates the service through COM,
+activates it inside a real thread manager, then unregisters and checks nothing was
+left behind. It also builds and runs `tools/smoke/tsf-engine.cpp`, which is this
+service's own engine wrapper compiled from this folder: it has to find the active
+keyboard, answer "would you take this key?" in agreement with what processing the
+key then does, and never change its state while asking.
+
+What none of that does is type. It has no window and no focus, so it cannot
 show a character appearing in a document. That part is a human check:
 
   - Notepad: type "mingalarpar" with the Pyidaungsu keyboard active; the text

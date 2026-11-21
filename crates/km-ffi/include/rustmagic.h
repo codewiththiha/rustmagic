@@ -91,6 +91,17 @@ char *rm_engine_context(const rm_engine *engine);
 int rm_engine_key(rm_engine *engine, uint16_t key, uint32_t ch, int shift, int control,
                   int alt, int alt_gr, int caps, rm_edit *out);
 
+/* Asks what rm_engine_key would answer, without changing anything: the context,
+ * the switches and the history stay as they are. Returns 1 when the engine would
+ * consume the key.
+ *
+ * A Windows text service is asked twice about every key, first whether to claim
+ * it (ITfKeyEventSink::OnTestKeyDown) and then to process it, and claiming a key
+ * it will not use makes the application unusable. Null engines and missing
+ * keyboards answer 0. */
+int rm_engine_key_test(const rm_engine *engine, uint16_t key, uint32_t ch, int shift,
+                       int control, int alt, int alt_gr, int caps);
+
 /* Releases a string this library returned. Must not be called twice. */
 void rm_string_free(char *text);
 

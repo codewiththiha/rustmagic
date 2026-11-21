@@ -51,17 +51,38 @@ cargo build -p km-ffi --release --target x86_64-pc-windows-gnu
 "$cc" -std=c++17 -O1 -Wall -Wextra -o "$out/tsf-com.exe" tools/smoke/tsf-com.cpp \
     -lole32 -luuid
 
+# The service's own engine wrapper, compiled from the service's own source and
+# driven against the same keyboards, with no text services involved.
+"$cc" -std=c++17 -O1 -Wall -Wextra -Wno-delete-non-virtual-dtor \
+    -static -static-libgcc -static-libstdc++ \
+    -I crates/km-ffi/include \
+    -o "$out/tsf-engine.exe" \
+    tools/smoke/tsf-engine.cpp platform/windows/tsf/engine.cpp \
+    target/x86_64-pc-windows-gnu/release/libkm_ffi.a \
+    -lole32 -ladvapi32 -lkernel32 -luser32 -lws2_32 -luserenv -lbcrypt -lntdll \
+    -lsynchronization -lmsvcrt
+
 win_dll=$(cd "$out" && pwd -W 2>/dev/null || echo "$(pwd)/RustMagicTSF.dll")
 win_exe=$(cd "$out" && pwd -W 2>/dev/null || echo "$(pwd)/tsf-com.exe")
-
+win_engine=$(cd "$out" && pwd -W 2>/dev/null || echo "$(pwd)/tsf-engine.exe")
 export WINEPREFIX=${WINEPREFIX:-build/wine}
 export WINEDEBUG=-all
 # Wine wants a runtime directory even when nothing needs a display.
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-$WINEPREFIX/run}
 mkdir -p "$WINEPREFIX" "$XDG_RUNTIME_DIR"
 
+# A keyboard where the service looks for it: %APPDATA%\RustMagic. Without this
+# the service has nothing to type with and the claim decision cannot be checked;
+# with it, the DLL has to find, load and run a real layout.
+appdata="$WINEPREFIX/drive_c/users/$USER/AppData/Roaming/RustMagic"
+mkdir -p "$appdata/keyboards"
+cp keyboards/bundled/*.km2 "$appdata/keyboards/"
+printf 'active = "pyidaungsu-mm"\n' > "$appdata/settings.toml"
+win_appdata=$(cd "$appdata/.." && pwd -W 2>/dev/null || echo "$appdata/..")
+
 "$wine" "${win_exe}" --register "${win_dll}"
 status=$?
+"$wine" "${win_engine}" "${win_appdata}" || status=1
 "$wine" "${win_exe}" --unregister "${win_dll}" || status=1
 
 exit $status

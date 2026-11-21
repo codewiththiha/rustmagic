@@ -53,6 +53,12 @@ public:
     Edit process(unsigned int vk, wchar_t ch, bool shift, bool control, bool alt, bool alt_gr,
                  bool caps);
 
+    /* Whether process would consume this key, without consuming it. TSF asks
+     * that question first (ITfKeyEventSink::OnTestKeyDown) and claiming a key
+     * the engine has no rule for would swallow the application's keystrokes. */
+    bool would_consume(unsigned int vk, wchar_t ch, bool shift, bool control, bool alt, bool alt_gr,
+                       bool caps) const;
+
 private:
     void unload();
 

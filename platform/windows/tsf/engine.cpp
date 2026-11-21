@@ -261,6 +261,16 @@ void Engine::reset() {
     }
 }
 
+bool Engine::would_consume(unsigned int vk, wchar_t ch, bool shift, bool control, bool alt,
+                           bool alt_gr, bool caps) const {
+    if (engine_ == nullptr) {
+        return false;
+    }
+    return rm_engine_key_test(engine_, static_cast<uint16_t>(vk), static_cast<uint32_t>(ch),
+                              shift ? 1 : 0, control ? 1 : 0, alt ? 1 : 0, alt_gr ? 1 : 0,
+                              caps ? 1 : 0) != 0;
+}
+
 Edit Engine::process(unsigned int vk, wchar_t ch, bool shift, bool control, bool alt, bool alt_gr,
                      bool caps) {
     Edit edit;

@@ -198,7 +198,16 @@ bundle, its signature and its `Info.plist`, installs it, and queries Text Input
 Source Services for the category, the language, whether it enables and whether it
 selects.
 
-Neither job types a character, because there is no focused text field on a
+A third job, "the keyboard registers without Windows", cross-compiles the same
+sources with mingw-w64 and drives them under Wine on Linux: it checks the COM
+surface against the published interface identifiers, registers the DLL, reads
+the CLSID and the language profile back, creates the service through
+`CoCreateInstance`, activates it inside a live TSF thread manager, and unregisters
+everything again. That is where a bug that silently registered no language
+profile was found, which is the sort of thing an input method can carry for
+months.
+
+None of the jobs type a character, because there is no focused text field on a
 runner to type into. That part stays a human check, and
 `platform/windows/tsf/INSTALL.txt` and `platform/macos/ime/INSTALL.txt` list
 exactly which checks those are, so a release note never claims more than the

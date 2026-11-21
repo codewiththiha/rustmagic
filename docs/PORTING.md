@@ -131,12 +131,16 @@ thin shim rather than being rewritten:
 rm_keyboard_load / rm_keyboard_from_bytes / rm_keyboard_free
 rm_keyboard_name / _description / _hotkey / _rule_count
 rm_engine_new / rm_engine_free / rm_engine_reset
-rm_engine_key / rm_engine_set_context / rm_engine_context
+rm_engine_key / rm_engine_key_test / rm_engine_set_context / rm_engine_context
 rm_string_free / rm_version
 ```
 
 Strings this library returns are its own allocations and are released with
 `rm_string_free`. A null handle is answered neutrally rather than dereferenced.
+`rm_engine_key_test` answers what `rm_engine_key` would do without doing it, which
+is what a Windows text service needs: TSF asks whether the service claims a key
+before it hands the key over, and a service that has to mutate its state to
+answer either swallows keystrokes it has no rule for or loses the ones it does.
 The `rm_edit` out-parameter carries the same `erase`/`insert` pair the Rust API
 uses.
 

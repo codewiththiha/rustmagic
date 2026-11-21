@@ -223,10 +223,64 @@ STDMETHODIMP TextService::OnPopContext(ITfContext *) { return S_OK; }
 
 STDMETHODIMP TextService::OnSetFocus(BOOL) { return S_OK; }
 
-STDMETHODIMP TextService::OnTestKeyDown(ITfContext *, WPARAM, LPARAM, BOOL *eaten) {
-    if (eaten != nullptr) {
-        *eaten = FALSE;
+/* TSF asks this before it processes a key: if the answer is "not mine" the
+ * application gets the key and OnKeyDown is never called. So the answer has to
+ * be the engine's own, worked out on a copy of its state: a service that claims
+ * every key swallows the application's typing, and one that claims none never
+ * types at all. */
+STDMETHODIMP TextService::OnTestKeyDown(ITfContext *context, WPARAM wparam, LPARAM lparam,
+                                       BOOL *eaten) {
+    if (eaten == nullptr) {
+        return E_INVALIDARG;
     }
+    *eaten = FALSE;
+    if (context == nullptr) {
+        return S_OK;
+    }
+    if (!engine_.ready()) {
+        engine_.reload();
+    }
+
+    const UINT vk = static_cast<UINT>(wparam);
+    if (vk == VK_SHIFT || vk == VK_CONTROL || vk == VK_MENU || vk == VK_CAPITAL ||
+        vk == VK_LWIN || vk == VK_RWIN) {
+        return S_OK;
+    }
+
+    const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    const bool control = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    const bool right_alt = (GetKeyState(VK_RMENU) & 0x8000) != 0;
+    const bool left_alt = (GetKeyState(VK_LMENU) & 0x8000) != 0;
+    const bool alt_gr = right_alt && control;
+    const bool alt = left_alt && !alt_gr;
+    const bool caps = (GetKeyState(VK_CAPITAL) & 1) != 0;
+
+    /* The keys the service handles itself, whatever the engine would say. */
+    if (vk == VK_ESCAPE) {
+        *eaten = composing_.empty() ? FALSE : TRUE;
+        return S_OK;
+    }
+    if (vk == VK_RETURN || vk == VK_TAB || vk == VK_SPACE || control || (left_alt && !alt_gr) ||
+        vk == VK_LEFT || vk == VK_RIGHT || vk == VK_UP || vk == VK_DOWN || vk == VK_HOME ||
+        vk == VK_END || vk == VK_PRIOR || vk == VK_NEXT || vk == VK_DELETE || vk == VK_INSERT) {
+        return S_OK;
+    }
+    if (vk == VK_BACK) {
+        /* Inside a syllable Backspace is the engine's; outside it, the
+         * application's. */
+        *eaten = composing_.empty() ? FALSE : TRUE;
+        return S_OK;
+    }
+
+    wchar_t typed = 0;
+    BYTE state[256] = {};
+    GetKeyboardState(state);
+    WCHAR buffer[8] = {};
+    const UINT scan = static_cast<UINT>((lparam >> 16) & 0xFF);
+    if (ToUnicode(vk, scan, state, buffer, ARRAYSIZE(buffer), 0) > 0) {
+        typed = buffer[0];
+    }
+    *eaten = engine_.would_consume(vk, typed, shift, control, alt, alt_gr, caps) ? TRUE : FALSE;
     return S_OK;
 }
 

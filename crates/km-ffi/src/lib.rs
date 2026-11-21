@@ -312,6 +312,53 @@ pub unsafe extern "C" fn rm_engine_key(
     c_int::from(outcome.consumed)
 }
 
+/// Asks the engine what it would do with a key, without doing it.
+///
+/// A Windows text service is asked twice about every key: once to decide whether
+/// to claim it at all ([`ITfKeyEventSink::OnTestKeyDown`]) and once to process it.
+/// Claiming a key it will not use makes the application unusable; failing to
+/// claim one it would use means it never sees the keystroke. This answers the
+/// first question by running the key against a copy of the engine's state and
+/// throwing the copy away, so the context, the switches and the history are
+/// exactly as they were.
+///
+/// Returns non-zero when the engine would consume the key.
+///
+/// # Safety
+///
+/// `engine` must be a handle from [`rm_engine_new`] or null, and must not be used
+/// from two threads at once. Nothing is written through it.
+///
+/// [`ITfKeyEventSink::OnTestKeyDown`]: https://learn.microsoft.com/windows/win32/api/msctf/nf-msctf-itfkeyeventsink-ontestkeydown
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rm_engine_key_test(
+    engine: *const rm_engine,
+    key: u16,
+    ch: u32,
+    shift: c_int,
+    control: c_int,
+    alt: c_int,
+    alt_gr: c_int,
+    caps: c_int,
+) -> c_int {
+    let Some(engine) = (unsafe { engine.as_ref() }) else {
+        return 0;
+    };
+    let input = KeyInput {
+        key,
+        text: char::from_u32(ch),
+        modifiers: Modifiers {
+            shift: shift != 0,
+            control: control != 0,
+            alt: alt != 0,
+            alt_gr: alt_gr != 0,
+            caps: caps != 0,
+        },
+    };
+    let mut probe = engine.engine.clone();
+    c_int::from(probe.key(input).consumed)
+}
+
 fn load(path: &Path) -> Result<Keyboard, Error> {
     let extension = path
         .extension()
@@ -354,6 +401,55 @@ mod tests {
             let text = rm_keyboard_name(ptr::null());
             assert_eq!(CStr::from_ptr(text).to_str().unwrap(), "");
             rm_string_free(text);
+        }
+    }
+
+    #[test]
+    fn asking_what_a_key_would_do_does_nothing() {
+        // The question a Windows text service asks about every key press before
+        // it claims the key, so it has to cost nothing: same answer as the real
+        // pass, and the context, the switches and the history untouched.
+        let path = CString::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../keyboards/bundled/pyidaungsu-mm.km2"
+        ))
+        .unwrap();
+        let keyboard = unsafe { rm_keyboard_load(path.as_ptr(), ptr::null_mut()) };
+        assert!(!keyboard.is_null(), "the bundled keyboard did not load");
+
+        let asking = unsafe { rm_engine_new(keyboard) };
+        let doing = unsafe { rm_engine_new(keyboard) };
+        assert!(!asking.is_null() && !doing.is_null());
+
+        // A syllable typed with the layout: "mingalarpar" is what a user types.
+        let typed = [0x4D_u16, 0x49, 0x4E, 0x47, 0x41, 0x4C];
+        for (index, key) in typed.iter().enumerate() {
+            let ch = u32::from(b"mingal"[index]);
+            let asked = unsafe { rm_engine_key_test(asking, *key, ch, 0, 0, 0, 0, 0) };
+            let edited = unsafe { rm_engine_key(doing, *key, ch, 0, 0, 0, 0, 0, ptr::null_mut()) };
+            assert_eq!(asked, edited, "key {key:#04x} disagreed with itself");
+        }
+
+        // The context the asking engine reports is still empty: nothing was
+        // processed on it, even though the same keys changed the other engine.
+        let asked_context = unsafe { rm_engine_context(asking) };
+        let done_context = unsafe { rm_engine_context(doing) };
+        let asked_text = unsafe { CStr::from_ptr(asked_context) }
+            .to_str()
+            .unwrap()
+            .to_owned();
+        let done_text = unsafe { CStr::from_ptr(done_context) }
+            .to_str()
+            .unwrap()
+            .to_owned();
+        assert_eq!(asked_text, "");
+        assert_ne!(done_text, "", "the processing engine should have a context");
+        unsafe {
+            rm_string_free(asked_context);
+            rm_string_free(done_context);
+            rm_engine_free(asking);
+            rm_engine_free(doing);
+            rm_keyboard_free(keyboard);
         }
     }
 
