@@ -1,3 +1,0 @@
-/usr/bin/cmake -E rm -f CMakeFiles/RustMagicTSF.dir/objects.a
-/usr/bin/x86_64-w64-mingw32-ar qc CMakeFiles/RustMagicTSF.dir/objects.a @CMakeFiles/RustMagicTSF.dir/objects1.rsp
-/usr/bin/x86_64-w64-mingw32-g++ -O3 -DNDEBUG -static-libgcc -static-libstdc++ -s -Wl,--kill-at /home/user/rustmagic/platform/windows/tsf/tsf.def /home/user/rustmagic/platform/windows/tsf/tsf.def -shared -o RustMagicTSF.dll -Wl,--out-implib,libRustMagicTSF.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles/RustMagicTSF.dir/objects.a -Wl,--no-whole-archive @CMakeFiles/RustMagicTSF.dir/linkLibs.rsp

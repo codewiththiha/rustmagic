@@ -10,3 +10,7 @@ Cargo.lock.bak
 
 # Release artifacts: built by tools/package, never committed.
 /dist/
+
+# Anything a build leaves behind, including the text service's CMake tree and
+# the Wine prefix the smoke test uses.
+/build/

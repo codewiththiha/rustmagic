@@ -1,1 +1,0 @@
- ffi/libkm_ffi.a -lole32 -loleaut32 -luuid -ladvapi32 -lshlwapi -luser32 -lkernel32 -lws2_32 -luserenv -lbcrypt -lntdll -lsynchronization -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

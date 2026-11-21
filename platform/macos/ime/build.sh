@@ -13,6 +13,7 @@
 set -eu
 
 root=$(cd "$(dirname "$0")/../../.." && pwd)
+here="$root/platform/macos/ime"
 out=${1:-"$root/build/macos"}
 cd "$root"
 
@@ -48,18 +49,18 @@ mkdir -p "$contents/MacOS" "$contents/Frameworks" "$contents/Resources/keyboards
 # a stale copy from somewhere else on the machine.
 swiftc -O -swift-version 5 \
     -module-name RustMagicIM \
-    -import-objc-header Sources/Bridging.h \
+    -import-objc-header "$here/Sources/Bridging.h" \
     -I crates/km-ffi/include \
     -framework Cocoa -framework InputMethodKit -framework Carbon \
     -Xlinker -rpath -Xlinker "@executable_path/../Frameworks" \
     -Xlinker "$shipped" \
     -o "$contents/MacOS/$name" \
-    Sources/*.swift
+    "$here"/Sources/*.swift
 
-install -m644 Info.plist "$contents/Info.plist"
+install -m644 "$here/Info.plist" "$contents/Info.plist"
 printf 'APPL????' > "$contents/PkgInfo"
 install -m644 crates/km-ffi/include/rustmagic.h "$contents/Resources/include/rustmagic.h"
-install -m644 keyboards/bundled/*.km2 "$contents/Resources/keyboards/"
+install -m644 "$root"/keyboards/bundled/*.km2 "$contents/Resources/keyboards/"
 
 # The engine lives inside the bundle: an input method runs inside other people's
 # applications, so it may not assume anything else is installed.

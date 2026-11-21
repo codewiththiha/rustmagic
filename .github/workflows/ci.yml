@@ -177,17 +177,23 @@ jobs:
           targets: x86_64-pc-windows-msvc
       - uses: Swatinem/rust-cache@v2
       - name: build the text service
+        shell: pwsh
         run: |
-          # CMake builds the engine itself: km-ffi for the MSVC target, linked
-          # into the DLL as a static library so there is nothing to ship
-          # alongside it.
-          cmake -B build/tsf -G "Visual Studio 17 2022" -A x64 `
-                -DRUSTMAGIC_FFI_LIB="" platform/windows/tsf
-          cmake --build build/tsf --config Release
+          # CMake's "Visual Studio 17 2022" generator cannot find an instance of
+          # the IDE on this image, so the build runs inside Visual Studio's own
+          # developer environment instead, which knows exactly which compiler it
+          # has. Ninja comes with it. CMake builds the engine too: km-ffi for the
+          # MSVC target, linked into the DLL as a static library.
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vs) { throw "no Visual Studio C++ tools on this runner" }
+          cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=amd64 -host_arch=amd64 && cmake -S platform/windows/tsf -B build/tsf -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build/tsf"
+          if ($LASTEXITCODE -ne 0) { throw "the text service did not build" }
+          if (-not (Test-Path "build/tsf/RustMagicTSF.dll")) { throw "RustMagicTSF.dll was not produced" }
       - name: it exports what COM looks for and nothing else
         shell: pwsh
         run: |
-          $dll = "build/tsf/Release/RustMagicTSF.dll"
+          $dll = "build/tsf/RustMagicTSF.dll"
           if (-not (Test-Path $dll)) { throw "$dll was not built" }
           # dumpbin is the SDK's tool; the CI image has it on PATH inside a
           # VS developer environment, so read the export table directly instead.
@@ -203,7 +209,7 @@ jobs:
           # regsvr32 is what the installer will call on a user's machine, so the
           # test calls exactly that. -Verb RunAs is not available in CI, and the
           # runner is already an administrator.
-          $dll = (Resolve-Path "build/tsf/Release/RustMagicTSF.dll").Path
+          $dll = (Resolve-Path "build/tsf/RustMagicTSF.dll").Path
           $proc = Start-Process -FilePath "regsvr32.exe" -ArgumentList "/s `"$dll`"" -Wait -PassThru
           if ($proc.ExitCode -ne 0) { throw "regsvr32 failed with $($proc.ExitCode)" }
           Write-Host "registered $dll"
@@ -218,7 +224,7 @@ jobs:
           $vs = & $vsdevcmd -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
           cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=amd64 && cl /nologo /EHsc /std:c++17 /W4 /I platform\windows\tsf /Fe:build\tsf-smoke.exe tools\smoke\tsf.cpp ole32.lib oleaut32.lib advapi32.lib user32.lib"
           if ($LASTEXITCODE -ne 0) { throw "the smoke test did not compile" }
-          $dll = (Resolve-Path "build/tsf/Release/RustMagicTSF.dll").Path
+          $dll = (Resolve-Path "build/tsf/RustMagicTSF.dll").Path
           & build/tsf-smoke.exe $dll
           if ($LASTEXITCODE -ne 0) { throw "the text service is not usable" }
       - name: it unregisters cleanly
@@ -226,7 +232,7 @@ jobs:
         run: |
           # A service that cannot be taken out again is a bug of its own: the
           # uninstaller has to leave no CLSID, no profile and no category behind.
-          $dll = (Resolve-Path "build/tsf/Release/RustMagicTSF.dll").Path
+          $dll = (Resolve-Path "build/tsf/RustMagicTSF.dll").Path
           $proc = Start-Process -FilePath "regsvr32.exe" -ArgumentList "/u /s `"$dll`"" -Wait -PassThru
           if ($proc.ExitCode -ne 0) { throw "regsvr32 /u failed with $($proc.ExitCode)" }
           $key = "HKLM:\SOFTWARE\Classes\CLSID\{6F1C4A2E-9B31-4C8A-9E1F-2B7D5A0C3A11}"

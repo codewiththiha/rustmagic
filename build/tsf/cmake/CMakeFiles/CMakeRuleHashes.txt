@@ -1,3 +1,0 @@
-# Hashes of file build rules.
-666091800e80b01605e561f8b8f97bce CMakeFiles/km_ffi_static
-b8914ed86524337b42a1250520eaa478 ffi/libkm_ffi.a
