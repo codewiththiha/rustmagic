@@ -9,9 +9,14 @@ post_install() {
 RustMagic is installed.
 
 To start typing with it:
-  1. run `rustmagic` once to install a keyboard into ~/.local/state/rustmagic
-  2. log out and back in, or run `ibus restart`
-  3. add "RustMagic" in your desktop's input-method settings
+  1. run `rustmagic` to choose/install keyboards in ~/.local/state/rustmagic
+  2. add "RustMagic" in your desktop's IBus input-method settings
+  3. on KDE Plasma Wayland, set Virtual Keyboard to "IBus Wayland" in
+     System Settings → Input & Output → Keyboard, then log out and back in
+
+For Plasma Wayland, remove GTK_IM_MODULE=ibus and QT_IM_MODULE=ibus overrides;
+let the desktop start IBus Wayland (do not add a second ibus-daemon autostart).
+On X11, `ibus restart` can reload the component.
 
 From a terminal, `rustmagic-cli list` and `rustmagic-cli type "test"` work
 without a window or an input method.

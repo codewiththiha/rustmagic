@@ -97,10 +97,15 @@ ibus write-cache && ibus restart
 For a per-user install, put the component file in
 `~/.config/ibus/component/rustmagic.xml` and correct the `<exec>` path.
 
-Under Wayland, IBus needs `GTK_IM_MODULE=ibus`, `QT_IM_MODULE=ibus` and
-`XMODIFIERS=@im=ibus` in the session environment; most desktops set these
-already. Under X11 the engine also works through the XIM bridge that
-`ibus-daemon --xim` provides.
+Do not apply the X11 module settings globally to every Wayland desktop. Plasma
+Wayland uses IBus' native Wayland virtual-keyboard integration: choose **IBus
+Wayland** in System Settings → Input & Output → Keyboard → Virtual Keyboard,
+then log out and back in. For this Plasma setup, `GTK_IM_MODULE=ibus` and
+`QT_IM_MODULE=ibus` must be unset, and IBus should be started by the desktop's
+IBus Wayland integration rather than a second manual autostart entry. On X11,
+set `GTK_IM_MODULE=ibus`, `QT_IM_MODULE=ibus` and `XMODIFIERS=@im=ibus`; the
+engine also works through the XIM bridge that `ibus-daemon --xim` provides.
+Other Wayland desktops have their own IBus integration instructions.
 
 ## Hotkeys
 
@@ -130,10 +135,28 @@ asks its factory for an engine, sends `a` and space, and decodes the reply with
 IBus looks (`/usr/share/ibus/component` or `~/.config/ibus/component`) and that
 its `<exec>` path exists and is executable.
 
-**It is listed but typing does nothing.** Check that the engine process is
-running (`busctl --user list | grep rustmagic`) and that the library has a
-keyboard (`rustmagic-cli list`). An empty library means the engine has nothing to
-apply, and it will pass every key through.
+**It is listed but typing does nothing (Plasma Wayland).** First confirm
+System Settings → Input & Output → Keyboard → Virtual Keyboard is set to **IBus
+Wayland**, not merely that RustMagic appears in IBus' engine list. Run
+`env | grep -E '^(GTK_IM_MODULE|QT_IM_MODULE)='` in a terminal opened from the
+Plasma session: for IBus Wayland, neither variable should be set to `ibus`.
+Remove those overrides from `/etc/environment`, `~/.config/environment.d/`,
+`~/.config/plasma-workspace/env/`, or an input-method selector, then log out and
+back in. Do not add a second `ibus-daemon` autostart entry.
+
+Next check that IBus selected RustMagic (`ibus engine`), the service owns its
+bus name (`busctl --user list | grep org.freedesktop.IBus.RustMagic`), and the
+same user's keyboard library is populated (`rustmagic-cli list`). To select the
+RustMagic engine from a terminal, run `ibus engine rustmagic`; select the
+specific layout in RustMagic's **Keyboard** submenu or its GUI. If the engine
+and layout are selected but text stays English, try a second IBus-aware editor
+and inspect the service log with `journalctl --user -b | grep -i rustmagic`.
+
+An empty library means the engine has nothing to apply, and it will pass every
+key through. If the IBus service is running and a library is populated but the
+input still does not reach the engine, the remaining boundary is the desktop's
+Wayland/IBus integration; the repository's private-bus smoke test cannot emulate
+a live Plasma session.
 
 **Text appears twice, or a key vanishes.** That is the preedit/commit boundary.
 The engine commits when a syllable ends — space, Enter, Tab, Escape, a modifier,

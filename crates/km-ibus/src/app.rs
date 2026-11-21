@@ -329,6 +329,24 @@ mod tests {
     }
 
     #[test]
+    fn selecting_pyidaungsu_in_the_ibus_engine_types_myanmar_preedit() {
+        let root =
+            std::env::temp_dir().join(format!("rustmagic-ibus-pyidaungsu-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let session = Session::open(Box::new(HeadlessHost::new(&root)));
+        let mut app = EngineApp::new(session, "rustmagic").expect("an engine");
+
+        assert!(app.select_keyboard("pyidaungsu-mm").consumed);
+        let mut output = Output::default();
+        for keysym in [0x0061, 0x0074, 0x003b] {
+            output = press(&mut app, keysym);
+        }
+        assert!(output.consumed);
+        assert_eq!(output.preedit.as_deref(), Some("အေး"));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn a_letter_becomes_a_preedit() {
         let mut app = app_named("letter");
         let output = press(&mut app, 0x0061);
