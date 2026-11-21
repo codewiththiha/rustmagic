@@ -167,6 +167,72 @@ jobs:
           # which is still a valid PNG, so the pixels are checked, not the size.
           python3 tools/package/check_icon.py dist/brand
 
+  tsf:
+    name: the keyboard speaks TSF
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+      - name: build the text service
+        run: |
+          # CMake builds the engine itself: km-ffi for the MSVC target, linked
+          # into the DLL as a static library so there is nothing to ship
+          # alongside it.
+          cmake -B build/tsf -G "Visual Studio 17 2022" -A x64 `
+                -DRUSTMAGIC_FFI_LIB="" platform/windows/tsf
+          cmake --build build/tsf --config Release
+      - name: it exports what COM looks for and nothing else
+        shell: pwsh
+        run: |
+          $dll = "build/tsf/Release/RustMagicTSF.dll"
+          if (-not (Test-Path $dll)) { throw "$dll was not built" }
+          # dumpbin is the SDK's tool; the CI image has it on PATH inside a
+          # VS developer environment, so read the export table directly instead.
+          $bytes = [IO.File]::ReadAllBytes($dll)
+          $text = [Text.Encoding]::ASCII.GetString($bytes)
+          foreach ($export in @("DllGetClassObject","DllCanUnloadNow","DllRegisterServer","DllUnregisterServer")) {
+            if (-not $text.Contains($export)) { throw "$export is missing from $dll" }
+          }
+          Write-Host "$dll exports the four COM entry points"
+      - name: it registers as a keyboard
+        shell: pwsh
+        run: |
+          # regsvr32 is what the installer will call on a user's machine, so the
+          # test calls exactly that. -Verb RunAs is not available in CI, and the
+          # runner is already an administrator.
+          $dll = (Resolve-Path "build/tsf/Release/RustMagicTSF.dll").Path
+          $proc = Start-Process -FilePath "regsvr32.exe" -ArgumentList "/s `"$dll`"" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "regsvr32 failed with $($proc.ExitCode)" }
+          Write-Host "registered $dll"
+      - name: a real TSF manager accepts it
+        shell: pwsh
+        run: |
+          # The smoke test asks Windows itself: the CLSID's InprocServer32, the
+          # keyboard category, the language profile, and activation inside a live
+          # thread manager. It exits non-zero if any of the four is missing.
+          $cl = "cl.exe"
+          $vsdevcmd = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vsdevcmd -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=amd64 && cl /nologo /EHsc /std:c++17 /W4 /I platform\windows\tsf /Fe:build\tsf-smoke.exe tools\smoke\tsf.cpp ole32.lib oleaut32.lib advapi32.lib user32.lib"
+          if ($LASTEXITCODE -ne 0) { throw "the smoke test did not compile" }
+          $dll = (Resolve-Path "build/tsf/Release/RustMagicTSF.dll").Path
+          & build/tsf-smoke.exe $dll
+          if ($LASTEXITCODE -ne 0) { throw "the text service is not usable" }
+      - name: it unregisters cleanly
+        shell: pwsh
+        run: |
+          # A service that cannot be taken out again is a bug of its own: the
+          # uninstaller has to leave no CLSID, no profile and no category behind.
+          $dll = (Resolve-Path "build/tsf/Release/RustMagicTSF.dll").Path
+          $proc = Start-Process -FilePath "regsvr32.exe" -ArgumentList "/u /s `"$dll`"" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "regsvr32 /u failed with $($proc.ExitCode)" }
+          $key = "HKLM:\SOFTWARE\Classes\CLSID\{6F1C4A2E-9B31-4C8A-9E1F-2B7D5A0C3A11}"
+          if (Test-Path $key) { throw "the CLSID is still registered after uninstall" }
+          Write-Host "unregistered, and nothing was left behind"
+
   abi:
     name: the C ABI links
     runs-on: ubuntu-latest

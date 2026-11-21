@@ -40,8 +40,10 @@ SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
+; The text service registers its CLSID and its language profile under HKLM —
+; Windows keeps the list of input methods there — so the installer needs
+; administrator rights once, the way every input method does.
+PrivilegesRequired=admin
 MinVersion=10.0
 
 [Languages]
@@ -55,6 +57,9 @@ Name: "path"; Description: "Add RustMagic to the PATH (the command line front en
 Source: "{#Stage}\rustmagic.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\rustmagic-cli.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\km_ffi.dll"; DestDir: "{app}"; Flags: ignoreversion
+; regserver runs `regsvr32 /s` after copying and `regsvr32 /u /s` on uninstall,
+; which is what makes RustMagic a keyboard in Windows Settings.
+Source: "{#Stage}\RustMagicTSF.dll"; DestDir: "{app}"; Flags: ignoreversion regserver
 Source: "{#Stage}\rustmagic.h"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\keyboards\*.km2"; DestDir: "{app}\keyboards"; Flags: ignoreversion
 Source: "{#Stage}\README.md"; DestDir: "{app}"; Flags: ignoreversion

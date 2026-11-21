@@ -1,0 +1,16 @@
+; tsf.def — the exports COM looks for by name.
+;
+; DllRegisterServer/DllUnregisterServer are what regsvr32 calls; the other two
+; are the COM entry points. Nothing else is exported: the engine is linked in
+; statically and is not part of this DLL's interface.
+;
+; Plain names only: "PRIVATE" is a GNU ld keyword and this file is also read by
+; the MSVC linker, which does not understand it.
+
+LIBRARY RustMagicTSF
+
+EXPORTS
+    DllGetClassObject
+    DllCanUnloadNow
+    DllRegisterServer
+    DllUnregisterServer

@@ -400,6 +400,13 @@ jobs:
           cargo build --release --locked --package rustmagic --package rustmagic-cli --package km-ffi
       - name: test before shipping
         run: cargo test --release --locked -p km-core -p km-binary -p km-script -p km-engine -p km-store -p km-session -p ui-egui
+      - name: build the text service
+        # The keyboard Windows calls an input method. Built here, next to the
+        # binaries, so the installers ship a DLL that matches them.
+        run: |
+          cmake -B build/tsf -G "Visual Studio 17 2022" -A x64 `
+                -DRUSTMAGIC_ICON="$(Resolve-Path dist/brand/rustmagic.ico)" platform/windows/tsf
+          cmake --build build/tsf --config Release
       - name: assemble
         shell: bash
         run: |
@@ -407,6 +414,7 @@ jobs:
           mkdir -p "$out/keyboards"
           cp target/release/rustmagic.exe target/release/rustmagic-cli.exe "$out/"
           cp target/release/km_ffi.dll "$out/"
+          cp build/tsf/Release/RustMagicTSF.dll "$out/"
           cp crates/km-ffi/include/rustmagic.h "$out/"
           cp keyboards/bundled/*.km2 "$out/keyboards/"
           cp README.md LICENSE "$out/"
@@ -419,13 +427,19 @@ jobs:
 
             rustmagic.exe       the manager window
             rustmagic-cli.exe   the command line front end, no window needed
-            km_ffi.dll          the engine's C ABI, for an input-method service
+            km_ffi.dll          the engine's C ABI, for other input-method services
             rustmagic.h         its header
+            RustMagicTSF.dll    the keyboard Windows itself uses (see below)
             keyboards\          the five Myanmar layouts that ship with it
 
-          There is no TSF text service in this release yet, so typing into other
-          applications with a layout is the next piece of work. Managing
-          keyboards, trying them, and driving the engine from code all work.
+          Typing everywhere: RustMagicTSF.dll is a TSF text service. The
+          installer registers it, so RustMagic appears under Settings ->
+          Language & region -> <language> -> Keyboards and in the language bar,
+          and types with whichever keyboard is active in this window. Typing it
+          into other applications needs no extra step; Win+Space switches to it.
+
+          platform\windows\tsf\INSTALL.txt in the source tree explains the
+          registration and lists what the test suite can and cannot prove.
           TXT
       - name: sign, when there is a certificate
         # Authenticode, and a timestamp, so the signature outlives the
@@ -449,7 +463,7 @@ jobs:
           fi
           printf '%s' "$CERTIFICATE" | base64 --decode > certificate.pfx
           for file in dist/windows/rustmagic.exe dist/windows/rustmagic-cli.exe \
-                      dist/windows/km_ffi.dll; do
+                      dist/windows/km_ffi.dll dist/windows/RustMagicTSF.dll; do
             "$signtool" sign /fd sha256 /td sha256 /tr http://timestamp.digicert.com \
               /f certificate.pfx /p "$CERTIFICATE_PASSWORD" "$file"
           done

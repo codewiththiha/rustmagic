@@ -53,6 +53,7 @@
       </Component>
       <Component Id="CEngine" Guid="*">
         <File Id="KmFfiDll" Source="dist\windows\km_ffi.dll" KeyPath="yes" />
+        <File Id="RustMagicTSFDll" Source="dist\windows\RustMagicTSF.dll" />
       </Component>
       <Component Id="CEngineHeader" Guid="*">
         <File Id="RustMagicHeader" Source="dist\windows\rustmagic.h" KeyPath="yes" />
@@ -107,6 +108,27 @@
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DesktopShortcut" />
     </Feature>
+
+    <!-- The text service has to tell Windows about itself, and the only honest
+         way to do that is its own DllRegisterServer: it writes the CLSID, the
+         language profile and the keyboard category together, via the same TSF
+         APIs the Inno build calls through regsvr32. Deferred and elevated,
+         because the registration lands in HKLM. -->
+    <CustomAction Id="RegisterTextService"
+                  Directory="SystemFolder"
+                  Exe="regsvr32.exe"
+                  ExeCommand="/s &quot;[INSTALLFOLDER]RustMagicTSF.dll&quot;"
+                  Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="UnregisterTextService"
+                  Directory="SystemFolder"
+                  Exe="regsvr32.exe"
+                  ExeCommand="/u /s &quot;[INSTALLFOLDER]RustMagicTSF.dll&quot;"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RegisterTextService" After="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="UnregisterTextService" Before="RemoveFiles">REMOVE~="ALL"</Custom>
+    </InstallExecuteSequence>
 
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <UIRef Id="WixUI_InstallDir" />

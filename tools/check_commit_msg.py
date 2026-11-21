@@ -33,6 +33,8 @@ AREAS = {
     "ffi",
     "ibus",
     "linux",
+    "windows",
+    "macos",
     "packaging",
     "ui",
     "app",

@@ -1,0 +1,133 @@
+RustMagic on Windows: installing the keyboard as a system input method
+======================================================================
+
+This folder builds RustMagicTSF.dll. That DLL is what Windows calls a text
+service: a keyboard input method. Once it is registered, "RustMagic" appears in
+Settings -> Language & region -> (a language) -> Keyboards, and in the language
+bar, and whichever keyboard is active in the RustMagic window types in every
+application that uses the system text stack (Notepad, Word, browsers, Teams,
+the Settings app, packaged apps).
+
+Building
+--------
+
+With the Windows SDK and MSVC:
+
+    cmake -B build -G "Visual Studio 17 2022" -A x64 .
+    cmake --build build --config Release
+    -> build\Release\RustMagicTSF.dll
+
+The engine is Rust. CMake runs `cargo build -p km-ffi --release --target
+x86_64-pc-windows-msvc` itself if cargo is on PATH; to reuse a build you
+already have, pass -DRUSTMAGIC_FFI_LIB=path\to\km_ffi.lib.
+
+Cross-compiling on Linux, which is how the code is checked without a Windows
+machine (it produces a working DLL too, and it is the only way to build here):
+
+    rustup target add x86_64-pc-windows-gnu
+    cargo build -p km-ffi --release --target x86_64-pc-windows-gnu
+    cmake -B build -G "Unix Makefiles" \
+        -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+        -DCMAKE_SYSTEM_NAME=Windows \
+        -DRUSTMAGIC_FFI_LIB=target/x86_64-pc-windows-gnu/release/libkm_ffi.a .
+    cmake --build build
+    -> build/RustMagicTSF.dll
+
+CMakeLists.txt documents the two optional knobs: RUSTMAGIC_FFI_LIB and
+RUSTMAGIC_ICON. The icon is rendered from packaging/brand/rustmagic.svg by
+tools/package/icons.sh; if no SVG renderer is installed the DLL is built
+without one rather than failing.
+
+Installing
+----------
+
+Administrator rights are needed once, at install time, because Windows keeps
+the list of input methods in HKLM. This is how every input method installs.
+
+    regsvr32 /s RustMagicTSF.dll
+
+That is the whole install. It does three things, all of them reversible with
+`regsvr32 /u /s RustMagicTSF.dll`:
+
+  1. HKCR\CLSID\{6F1C4A2E-9B31-4C8A-9E1F-2B7D5A0C3A11}\InprocServer32 -> this DLL,
+     threading model Apartment, which is what lets any application load it.
+  2. ITfInputProcessorProfiles::Register + RegisterProfile for Burmese (my-MM)
+     and English (United States), enabled by default, so the profile exists in
+     Settings and in the language bar rather than needing to be hunted for.
+  3. ITfCategoryMgr::RegisterCategory under GUID_TFCAT_TIP_KEYBOARD,
+     GUID_TFCAT_TIPCAP_IMMERSIVESUPPORT (so packaged and UWP apps, including
+     Settings itself, may use it), GUID_TFCAT_TIPCAP_SYSTRAYSUPPORT and
+     GUID_TFCAT_DISPLAYATTRIBUTEPROVIDER (the underline under composing text).
+
+The release installer does exactly this: packaging/windows/rustmagic.iss ships
+the DLL with the Inno `regserver` flag, which is `regsvr32 /s` on install and
+`regsvr32 /u /s` on uninstall; packaging/windows/rustmagic.wxs does the same
+through a deferred custom action in the MSI.
+
+To see it: Settings -> Time & language -> Language & region -> the three-dot
+menu on a language -> Language options -> Add a keyboard -> RustMagic. Or
+Win+Space cycles to it once it is in the list.
+
+Keyboards
+---------
+
+The service types with whichever keyboard is active in the RustMagic window,
+read from %APPDATA%\RustMagic\settings.toml. If that has never been written it
+uses the first .km2 next to the DLL (the installer puts the five bundled
+layouts in <install dir>\keyboards), then %ProgramData%\RustMagic\keyboards.
+Switching keyboards in the window takes effect on the next focus change or key:
+the engine is reloaded, so a different layout types immediately.
+
+Verifying
+---------
+
+    tsf-smoke.exe <install dir>\RustMagicTSF.dll
+
+It checks, against a live TSF manager, that the CLSID points at the DLL, that
+the service is in the keyboard category, that a language profile exists, that
+the class factory hands out ITfTextInputProcessor, ITfKeyEventSink and
+ITfDisplayAttributeProvider, and that the service activates and deactivates
+inside a real thread manager. It prints PASS or FAIL per check and exits
+non-zero on any failure. The CI job "the keyboard speaks TSF" runs exactly this
+on windows-latest.
+
+What that test does not do is type. It has no window and no focus, so it cannot
+show a character appearing in a document. That part is a human check:
+
+  - Notepad: type "mingalarpar" with the Pyidaungsu keyboard active; the text
+    composes underlined and commits on space.
+  - The Settings app (a packaged app): the same, which is what the immersive
+    support category is for.
+  - Alt+Tab away mid-syllable: the composition commits rather than following
+    the focus to the next window.
+  - Win+Space away and back: the input method deactivates and reactivates
+    cleanly, and the underline never stays behind in a window that no longer
+    owns it.
+
+Known limits, stated rather than hidden
+---------------------------------------
+
+  - Only applications that use the system text stack get it. That is most
+    Windows software, including every UWP and packaged app, the Settings app
+    and browsers. A few things do not: some games with their own input loop,
+    exclusive full screen, and windows that swallow keys before the text stack
+    sees them. The same is true of every TSF input method, including the ones
+    Microsoft ships.
+  - The secure desktop (UAC prompts, the lock screen) refuses third-party input
+    methods unless they register for GUID_TFCAT_TIPCAP_SECUREMODE and run under
+    the system account. RustMagic deliberately does not, because that is a
+    privilege escalation surface.
+  - Per-monitor DPI and high contrast do not touch the composition: it is
+    ordinary text in the application's own font and size, drawn by the
+    application, with an underline from the display attribute.
+  - The engine is reloaded per process. Two applications with different
+    keyboards active in the window at different moments will each keep the
+    keyboard they last loaded until they change focus.
+
+Uninstalling
+------------
+
+    regsvr32 /u /s RustMagicTSF.dll
+
+or uninstall RustMagic from Settings -> Apps. The installer's uninstaller
+unregisters the DLL before removing it, so no dead CLSID is left behind.
