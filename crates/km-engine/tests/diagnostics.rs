@@ -169,7 +169,6 @@ fn what_pyidaungsu_says_about_the_vowel_e() {
     }
 }
 
-
 #[test]
 fn pyidaungsu_vowel_first_types_aye_without_an_invisible_character() {
     let keyboard = Keyboard::from_bytes(include_bytes!(
@@ -181,8 +180,10 @@ fn pyidaungsu_vowel_first_types_aye_without_an_invisible_character() {
         engine.key(KeyInput::character(key));
     }
     assert_eq!(engine.context(), "အေး");
-    assert!(!engine
-        .context()
-        .chars()
-        .any(|character| FURNITURE.contains(&character)));
+    assert!(
+        !engine
+            .context()
+            .chars()
+            .any(|character| FURNITURE.contains(&character))
+    );
 }
