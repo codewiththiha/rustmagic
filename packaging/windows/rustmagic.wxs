@@ -20,7 +20,11 @@
       Manufacturer="RustMagic contributors"
       UpgradeCode="18CA1AAD-FF22-5DEA-9A9C-D692CE09B6FE">
 
+    <!-- Platform says x64 in the summary information, which is what validation
+         asks for once any component is 64-bit; candle is also told `-arch x64`,
+         which is the supported way to say the same thing. -->
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine"
+             Platform="x64"
              Description="Keyboard layout engine for Myanmar and other scripts" />
     <MajorUpgrade DowngradeErrorMessage="A newer RustMagic is already installed." />
     <MediaTemplate EmbedCab="yes" />

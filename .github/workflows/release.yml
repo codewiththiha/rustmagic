@@ -565,7 +565,7 @@ jobs:
           # WixUtilExtension supplies WixQuietExec64, which is how the text service gets
           # registered: a deferred action cannot read [INSTALLFOLDER] on its own, so the
           # command line is built first and run elevated after the files are down.
-          & "$wix\candle.exe" -nologo -dVersion="${{ steps.version.outputs.version }}" `
+          & "$wix\candle.exe" -nologo -arch x64 -dVersion="${{ steps.version.outputs.version }}" `
             -ext WixUtilExtension `
             -out dist\rustmagic.wixobj packaging\windows\rustmagic.wxs
           if ($LASTEXITCODE -ne 0) { throw "candle.exe did not compile the package" }
