@@ -7,7 +7,8 @@ use crate::theme::Palette;
 use crate::widgets;
 
 /// Draws the page.
-pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
+pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) -> bool {
+    let mut setup_requested = false;
     widgets::page_title(
         ui,
         palette,
@@ -57,6 +58,30 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
                 }
             },
         );
+    });
+
+    ui.add_space(12.0);
+
+    widgets::card(palette).show(ui, |ui| {
+        ui.set_width(ui.available_width());
+        ui.label(
+            egui::RichText::new("Type in other apps")
+                .font(crate::theme::bold(13.5))
+                .strong()
+                .color(palette.text),
+        );
+        ui.add_space(6.0);
+        ui.label(
+            egui::RichText::new(
+                "Set up RustMagic as a system input source. The next screen shows where to add it; then choose RustMagic from the input menu and select a keyboard.",
+            )
+            .size(11.5)
+            .color(palette.muted),
+        );
+        ui.add_space(10.0);
+        if widgets::quiet_button(ui, palette, "Set up RustMagic…").clicked() {
+            setup_requested = true;
+        }
     });
 
     ui.add_space(12.0);
@@ -130,4 +155,5 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
             });
         }
     });
+    setup_requested
 }

@@ -115,7 +115,7 @@ impl Ui {
     }
 
     /// Draws one frame and returns the commands the user asked for.
-    pub fn show(&mut self, context: &Context, session: &mut Session) {
+    pub fn show(&mut self, context: &Context, session: &mut Session) -> bool {
         // Kept in the context's own memory rather than in this struct: fonts and
         // image loaders belong to a context, and a Ui may outlive the one it was
         // first drawn on (the render tests build a context per frame set).
@@ -131,7 +131,7 @@ impl Ui {
             // frame, so this frame still has the fonts it came with — which bind
             // no semibold family. One frame of nothing beats a panic on launch.
             context.request_repaint();
-            return;
+            return false;
         }
         self.absorb(session);
         let dark = theme::is_dark(context, session.settings().theme);
@@ -147,6 +147,7 @@ impl Ui {
         self.header(context, session, &palette);
         self.status(context, session, &palette);
 
+        let mut setup_requested = false;
         egui::CentralPanel::default()
             .frame(egui::Frame::none().fill(palette.bg).inner_margin(Margin {
                 left: 26.0,
@@ -158,27 +159,40 @@ impl Ui {
                 egui::ScrollArea::vertical()
                     .auto_shrink([false; 2])
                     .show(ui, |ui| {
-                        self.page(ui, session, &palette);
+                        setup_requested = self.page(ui, session, &palette);
                     });
             });
 
         self.palette_overlay(context, session);
         self.toasts(context, &palette);
+        setup_requested
     }
 
-    fn page(&mut self, ui: &mut egui::Ui, session: &mut Session, palette: &Palette) {
+    fn page(&mut self, ui: &mut egui::Ui, session: &mut Session, palette: &Palette) -> bool {
         match session.route() {
-            Route::Library => pages::library::show(
-                ui,
-                session,
-                palette,
-                &mut self.search,
-                &mut self.import_path,
-                &mut self.library_confirm,
-            ),
-            Route::TryIt => pages::try_it::show(ui, session, palette),
-            Route::Layout => pages::layout::show(ui, session, palette),
-            Route::Source => pages::source::show(ui, session, palette),
+            Route::Library => {
+                pages::library::show(
+                    ui,
+                    session,
+                    palette,
+                    &mut self.search,
+                    &mut self.import_path,
+                    &mut self.library_confirm,
+                );
+                false
+            }
+            Route::TryIt => {
+                pages::try_it::show(ui, session, palette);
+                false
+            }
+            Route::Layout => {
+                pages::layout::show(ui, session, palette);
+                false
+            }
+            Route::Source => {
+                pages::source::show(ui, session, palette);
+                false
+            }
             Route::Settings => pages::settings::show(ui, session, palette),
         }
     }

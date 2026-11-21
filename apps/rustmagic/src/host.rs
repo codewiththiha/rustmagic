@@ -6,6 +6,45 @@ use std::sync::{Arc, Mutex};
 
 use km_session::Host;
 
+
+/// Opens the platform's real input-source setup, installing RustMagic first
+/// where the platform has a bundled setup command.
+pub fn setup_input_method() {
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(executable) = std::env::current_exe() {
+            if let Some(contents) = executable.parent().and_then(Path::parent) {
+                let ime = contents.join(
+                    "Resources/Input Methods/RustMagicIME.app/Contents/MacOS/RustMagicIME",
+                );
+                if ime.is_file() {
+                    let _ = Command::new(ime).arg("--setup").spawn();
+                    return;
+                }
+            }
+        }
+        let _ = Command::new("open")
+            .arg("x-apple.systempreferences:com.apple.Keyboard-Settings.extension")
+            .spawn();
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let _ = Command::new("cmd")
+            .args(["/C", "start", "", "ms-settings:regionlanguage"])
+            .spawn();
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if Command::new("ibus-setup").spawn().is_err() {
+            let _ = Command::new("gnome-control-center")
+                .arg("region")
+                .spawn();
+        }
+    }
+}
+
 /// Where the desktop keeps things, without pulling in a crate to say so.
 ///
 /// Linux follows the XDG base directory spec, macOS the Application Support

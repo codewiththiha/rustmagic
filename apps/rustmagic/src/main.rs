@@ -29,7 +29,9 @@ impl eframe::App for Shell {
                 context.copy_text(text);
             }
         }
-        self.ui.show(context, &mut self.session);
+        if self.ui.show(context, &mut self.session) {
+            host::setup_input_method();
+        }
     }
 }
 
