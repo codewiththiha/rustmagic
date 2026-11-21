@@ -536,22 +536,22 @@ jobs:
             Write-Host "WiX Toolset is already here: $wix"
           }
       - name: installer (.exe)
-        shell: bash
+        # PowerShell, not bash: Git's bash rewrites an argument that starts with
+        # `/D` into a Windows path, and Inno Setup then sees two script names.
+        shell: pwsh
         run: |
-          set -e
-          # Same reason as the signtool lookup: `ls` over two paths, one of them
-          # absent, exits 2 under `pipefail` and takes the step with it.
-          iscc=""
-          for candidate in "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" \
-                           "/c/Program Files/Inno Setup 6/ISCC.exe"; do
-            if [ -x "$candidate" ]; then iscc="$candidate"; break; fi
-          done
-          if [ -z "$iscc" ]; then
-            echo "::error::Inno Setup is not on this runner"
-            exit 1
-          fi
-          "$iscc" "/DMyAppVersion=${{ steps.version.outputs.version }}" packaging/windows/rustmagic.iss
-          ls -l dist/*.exe
+          $iscc = @(
+            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            throw "Inno Setup is not on this runner"
+          }
+          & $iscc "/DMyAppVersion=${{ steps.version.outputs.version }}" packaging/windows/rustmagic.iss
+          if ($LASTEXITCODE -ne 0) {
+            throw "Inno Setup did not build the installer"
+          }
+          Get-ChildItem dist/*.exe | Format-Table Name, Length
       - name: installer (.msi)
         shell: pwsh
         run: |
