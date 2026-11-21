@@ -101,7 +101,10 @@ fn what_the_bundled_keyboards_type() {
         if furniture.is_empty() {
             println!("-- no two-key sequence produces an invisible character");
         } else {
-            println!("-- invisible characters from two keys:\n{}", furniture.join("\n"));
+            println!(
+                "-- invisible characters from two keys:\n{}",
+                furniture.join("\n")
+            );
         }
     }
 
