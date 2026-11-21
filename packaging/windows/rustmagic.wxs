@@ -54,25 +54,42 @@
       </Component>
       <Component Id="CEngine" Guid="*">
         <File Id="KmFfiDll" Source="dist\windows\km_ffi.dll" KeyPath="yes" />
-        <File Id="RustMagicTSFDll" Source="dist\windows\RustMagicTSF.dll" />
+      </Component>
+      <Component Id="CTextService" Guid="*">
+        <File Id="RustMagicTSFDll" Source="dist\windows\RustMagicTSF.dll" KeyPath="yes" />
       </Component>
       <Component Id="CEngineHeader" Guid="*">
         <File Id="RustMagicHeader" Source="dist\windows\rustmagic.h" KeyPath="yes" />
       </Component>
-      <Component Id="Documents" Guid="*">
+      <!-- One file per component: a generated guid (`*`) is only allowed when the
+           keypath is the only file, or when the keypath is versioned and the rest
+           are not. These files are neither, so they are separate components. -->
+      <Component Id="CDocumentation" Guid="*">
         <File Id="Readme" Source="dist\windows\README.md" KeyPath="yes" />
-        <File Id="Licence" Source="dist\windows\LICENSE" />
-        <File Id="FontLicence" Source="dist\windows\OFL-NotoSansMyanmar.txt" />
+      </Component>
+      <Component Id="CLicence" Guid="*">
+        <File Id="Licence" Source="dist\windows\LICENSE" KeyPath="yes" />
+      </Component>
+      <Component Id="CFontLicence" Guid="*">
+        <File Id="FontLicence" Source="dist\windows\OFL-NotoSansMyanmar.txt" KeyPath="yes" />
       </Component>
     </DirectoryRef>
 
     <DirectoryRef Id="KeyboardsFolder">
-      <Component Id="BundledKeyboards" Guid="*">
-        <File Id="KbPyidaungsu" Source="dist\windows\keyboards\pyidaungsu-mm.km2" KeyPath="yes" />
-        <File Id="KbMyWin" Source="dist\windows\keyboards\my-win.km2" />
-        <File Id="KbMyanSan" Source="dist\windows\keyboards\myansan.km2" />
-        <File Id="KbZawgyi" Source="dist\windows\keyboards\zawgyi.km2" />
-        <File Id="KbZawCode" Source="dist\windows\keyboards\zawcode.km2" />
+      <Component Id="KbPyidaungsu" Guid="*">
+        <File Id="FilePyidaungsu" Source="dist\windows\keyboards\pyidaungsu-mm.km2" KeyPath="yes" />
+      </Component>
+      <Component Id="KbMyWin" Guid="*">
+        <File Id="FileMyWin" Source="dist\windows\keyboards\my-win.km2" KeyPath="yes" />
+      </Component>
+      <Component Id="KbMyanSan" Guid="*">
+        <File Id="FileMyanSan" Source="dist\windows\keyboards\myansan.km2" KeyPath="yes" />
+      </Component>
+      <Component Id="KbZawgyi" Guid="*">
+        <File Id="FileZawgyi" Source="dist\windows\keyboards\zawgyi.km2" KeyPath="yes" />
+      </Component>
+      <Component Id="KbZawCode" Guid="*">
+        <File Id="FileZawCode" Source="dist\windows\keyboards\zawcode.km2" KeyPath="yes" />
       </Component>
     </DirectoryRef>
 
@@ -103,9 +120,16 @@
       <ComponentRef Id="MainExecutable" />
       <ComponentRef Id="CommandLine" />
       <ComponentRef Id="CEngine" />
+      <ComponentRef Id="CTextService" />
       <ComponentRef Id="CEngineHeader" />
-      <ComponentRef Id="Documents" />
-      <ComponentRef Id="BundledKeyboards" />
+      <ComponentRef Id="CDocumentation" />
+      <ComponentRef Id="CLicence" />
+      <ComponentRef Id="CFontLicence" />
+      <ComponentRef Id="KbPyidaungsu" />
+      <ComponentRef Id="KbMyWin" />
+      <ComponentRef Id="KbMyanSan" />
+      <ComponentRef Id="KbZawgyi" />
+      <ComponentRef Id="KbZawCode" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DesktopShortcut" />
     </Feature>
@@ -113,9 +137,9 @@
     <!-- The text service has to tell Windows about itself, and the only honest
          way to do that is its own DllRegisterServer: it writes the CLSID, the
          language profile and the keyboard category together, via the same TSF
-         APIs the Inno build calls through regsvr32. Deferred and elevated,
-         because the registration lands in HKLM. -->
-    <!-- The command line is built while the installer is still immediate, because
+         APIs the Inno build calls through regsvr32.
+
+         The command line is built while the installer is still immediate, because
          a deferred action cannot read [INSTALLFOLDER] for itself; WixQuietExec64
          then runs that line elevated, which regsvr32 needs to write to HKLM. -->
     <CustomAction Id="SetRegisterTextService"
