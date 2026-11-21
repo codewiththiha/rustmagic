@@ -6,7 +6,6 @@ use std::sync::{Arc, Mutex};
 
 use km_session::Host;
 
-
 /// Opens the platform's real input-source setup, installing RustMagic first
 /// where the platform has a bundled setup command.
 pub fn setup_input_method() {
@@ -14,9 +13,8 @@ pub fn setup_input_method() {
     {
         if let Ok(executable) = std::env::current_exe() {
             if let Some(contents) = executable.parent().and_then(Path::parent) {
-                let ime = contents.join(
-                    "Resources/Input Methods/RustMagicIME.app/Contents/MacOS/RustMagicIME",
-                );
+                let ime = contents
+                    .join("Resources/Input Methods/RustMagicIME.app/Contents/MacOS/RustMagicIME");
                 if ime.is_file() {
                     let _ = Command::new(ime).arg("--setup").spawn();
                     return;
@@ -38,9 +36,7 @@ pub fn setup_input_method() {
     #[cfg(target_os = "linux")]
     {
         if Command::new("ibus-setup").spawn().is_err() {
-            let _ = Command::new("gnome-control-center")
-                .arg("region")
-                .spawn();
+            let _ = Command::new("gnome-control-center").arg("region").spawn();
         }
     }
 }
