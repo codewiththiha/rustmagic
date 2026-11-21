@@ -12,6 +12,7 @@
 
 #include <ibus.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const char *FACTORY_PATH = "/org/freedesktop/IBus/Factory";
@@ -85,6 +86,16 @@ static gboolean process_key(GDBusConnection *bus, const char *dest, const char *
 int main(int argc, char **argv) {
     const char *bus_name = argc > 1 ? argv[1] : "org.freedesktop.IBus.RustMagic";
     const char *engine_name = argc > 2 ? argv[2] : "rustmagic";
+    /* What a fresh install types for `a`, computed by the headless engine in
+     * tools/smoke/ibus.sh from the same state directory. Hardcoding a glyph
+     * would make this test about my-Win's rules; taking it from the CLI makes
+     * it about IBus agreeing with the engine, whatever keyboard ships. */
+    const char *expected_preedit = getenv("SMOKE_PREEDIT");
+    const char *expected_commit = getenv("SMOKE_COMMIT");
+    if (expected_preedit == NULL || expected_commit == NULL) {
+        fprintf(stderr, "SMOKE_PREEDIT and SMOKE_COMMIT must be set\n");
+        return 2;
+    }
 
     ibus_init();
     GError *error = NULL;
@@ -115,14 +126,14 @@ int main(int argc, char **argv) {
 
     int failures = 0;
 
-    /* "a" is the first key of the demo Greek layout: it should show as a preedit
-     * and nothing is committed yet. */
+    /* "a" is the first letter of the active keyboard: it should show as a
+     * preedit and nothing is committed yet. */
     if (!process_key(bus, bus_name, path, 0x0061, 38, 0)) {
         fprintf(stderr, "FAIL the engine did not handle `a`\n");
         failures++;
     }
-    if (g_strcmp0(preedit, "α") != 0) {
-        fprintf(stderr, "FAIL preedit is `%s`, expected `α`\n", preedit);
+    if (g_strcmp0(preedit, expected_preedit) != 0) {
+        fprintf(stderr, "FAIL preedit is `%s`, expected `%s`\n", preedit, expected_preedit);
         failures++;
     }
     if (commits != 0) {
@@ -135,8 +146,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "FAIL the engine swallowed the space\n");
         failures++;
     }
-    if (g_strcmp0(committed, "α") != 0) {
-        fprintf(stderr, "FAIL committed `%s`, expected `α`\n", committed);
+    if (g_strcmp0(committed, expected_commit) != 0) {
+        fprintf(stderr, "FAIL committed `%s`, expected `%s`\n", committed, expected_commit);
         failures++;
     }
     if (commits != 1) {

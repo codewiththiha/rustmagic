@@ -10,12 +10,20 @@ set -e
 root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$root"
 
-cargo build --quiet -p rustmagic-ibus
+cargo build --quiet -p rustmagic-ibus -p rustmagic-cli
 cc tools/smoke/ibus-engine.c $(pkg-config --cflags --libs ibus-1.0) -o target/ibus-smoke
 
 state=$(mktemp -d)
 export XDG_STATE_HOME="$state"
 export XDG_CACHE_HOME="$state/cache"
+
+# What the engine says `a` produces on a fresh install, from the same state
+# directory the IBus process will read. Asking instead of hardcoding keeps this
+# a test of the IBus wiring rather than a test of one layout's rules.
+SMOKE_PREEDIT=$(target/debug/rustmagic-cli key 0x41)
+SMOKE_COMMIT="$SMOKE_PREEDIT"
+export SMOKE_PREEDIT SMOKE_COMMIT
+echo "a should produce \`$SMOKE_PREEDIT\`"
 
 target/debug/rustmagic-ibus &
 engine=$!
