@@ -7,10 +7,16 @@ which is where every KeyMagic layout lives and which states that a submitted
 keyboard is redistributable.
 
 They are **not** reimplementations. A layout is a program, and an approximation
-of one types the wrong thing — which is exactly what happened here: the copies of
-Pyidaungsu MM and MyanSan that shipped in 0.2.0 were smaller than KeyMagic's own
-and typed `အ‌ေး` where KeyMagic types `အေး`. They were replaced with KeyMagic's
-files, byte for byte.
+of one types the wrong thing. The Pyidaungsu MM and MyanSan files shipped in 0.2.0
+differed in size from KeyMagic's copies, so the authoritative files replaced them
+byte for byte. That provenance correction alone does **not** prove the reported
+`အ‌ေး` bug was fixed: KeyMagic's Pyidaungsu file itself emits U+200C for the `a`
+key. In the CI engine check, the documented vowel-first sequence `a`, `t`, `;`
+produces `အေး` with no invisible character, while the reversed `t`, `a`, `;`
+sequence retains U+200C. The KeyMagic layout guide shows vowel-first typing (for
+example, `a u s m i f ;` for `ကျောင်း`). The real macOS typing path has not yet
+been observed, so this is a regression check of the engine, not an end-to-end
+claim about the app.
 
 | File | Name inside the file | Bytes | MD5 |
 | --- | --- | --- | --- |

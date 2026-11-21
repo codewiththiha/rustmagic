@@ -168,3 +168,21 @@ fn what_pyidaungsu_says_about_the_vowel_e() {
         }
     }
 }
+
+
+#[test]
+fn pyidaungsu_vowel_first_types_aye_without_an_invisible_character() {
+    let keyboard = Keyboard::from_bytes(include_bytes!(
+        "../../../keyboards/bundled/pyidaungsu-mm.km2"
+    ))
+    .expect("the bundled Pyidaungsu keyboard decodes");
+    let mut engine = Engine::new(std::sync::Arc::new(keyboard));
+    for key in "at;".chars() {
+        engine.key(KeyInput::character(key));
+    }
+    assert_eq!(engine.context(), "အေး");
+    assert!(!engine
+        .context()
+        .chars()
+        .any(|character| FURNITURE.contains(&character)));
+}
