@@ -28,7 +28,8 @@
     <Icon Id="RustMagicIcon" SourceFile="dist\brand\rustmagic.ico" />
     <Property Id="ARPPRODUCTICON" Value="RustMagicIcon" />
     <Property Id="ARPHELPLINK" Value="https://github.com/codewiththiha/rustmagic" />
-    <Property Id="ARPNOMODIFY" Value="1" />
+    <!-- ARPNOMODIFY is not set here: WixUI_InstallDir declares it, and two
+         definitions of the same property are a duplicate symbol at link time. -->
 
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
