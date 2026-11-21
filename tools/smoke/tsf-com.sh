@@ -32,21 +32,34 @@ mkdir -p "$out"
 # The engine, cross-built for the Windows ABI the DLL links against.
 cargo build -p km-ffi --release --target x86_64-pc-windows-gnu
 
-"$cc" -std=c++17 -O2 -Wall -Wextra -Wno-delete-non-virtual-dtor \
-    -shared -static -static-libgcc -static-libstdc++ \
-    -Wl,-s -Wl,--gc-sections -Wl,--kill-at \
-    -I crates/km-ffi/include \
-    -o "$out/RustMagicTSF.dll" \
-    platform/windows/tsf/class_factory.cpp \
-    platform/windows/tsf/display_attribute.cpp \
-    platform/windows/tsf/dllmain.cpp \
-    platform/windows/tsf/engine.cpp \
-    platform/windows/tsf/text_service.cpp \
-    platform/windows/tsf/tsf_guids.cpp \
-    target/x86_64-pc-windows-gnu/release/libkm_ffi.a \
-    -lole32 -loleaut32 -luuid -ladvapi32 -lkernel32 -luser32 \
-    -lws2_32 -luserenv -lbcrypt -lntdll -lsynchronization -lmsvcrt \
-    platform/windows/tsf/tsf.def
+# The DLL is built through the same CMakeLists.txt the Windows job uses, so what
+# Wine loads here is what MSVC builds there, and a line that only works on one
+# of the two toolchains fails here first.
+if command -v cmake >/dev/null 2>&1; then
+    cmake -S platform/windows/tsf -B "$out/cmake" \
+        -DCMAKE_SYSTEM_NAME=Windows \
+        -DCMAKE_CXX_COMPILER="$cc" \
+        -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres >/dev/null
+    cmake --build "$out/cmake" -j 2 >/dev/null
+    install -m755 "$out/cmake/RustMagicTSF.dll" "$out/RustMagicTSF.dll"
+else
+    echo "cmake is not installed; compiling the DLL with $cc directly" >&2
+    "$cc" -std=c++17 -O2 -Wall -Wextra -Wno-delete-non-virtual-dtor \
+        -shared -static -static-libgcc -static-libstdc++ \
+        -Wl,-s -Wl,--gc-sections -Wl,--kill-at \
+        -I crates/km-ffi/include \
+        -o "$out/RustMagicTSF.dll" \
+        platform/windows/tsf/class_factory.cpp \
+        platform/windows/tsf/display_attribute.cpp \
+        platform/windows/tsf/dllmain.cpp \
+        platform/windows/tsf/engine.cpp \
+        platform/windows/tsf/text_service.cpp \
+        platform/windows/tsf/tsf_guids.cpp \
+        target/x86_64-pc-windows-gnu/release/libkm_ffi.a \
+        -lole32 -loleaut32 -luuid -ladvapi32 -lkernel32 -luser32 \
+        -lws2_32 -luserenv -lbcrypt -lntdll -lsynchronization -lmsvcrt \
+        platform/windows/tsf/tsf.def
+fi
 
 "$cc" -std=c++17 -O1 -Wall -Wextra -o "$out/tsf-com.exe" tools/smoke/tsf-com.cpp \
     -lole32 -luuid

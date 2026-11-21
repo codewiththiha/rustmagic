@@ -1,0 +1,4 @@
+/home/user/rustmagic/build/tsf/cmake/CMakeFiles/km_ffi_static.dir
+/home/user/rustmagic/build/tsf/cmake/CMakeFiles/RustMagicTSF.dir
+/home/user/rustmagic/build/tsf/cmake/CMakeFiles/edit_cache.dir
+/home/user/rustmagic/build/tsf/cmake/CMakeFiles/rebuild_cache.dir

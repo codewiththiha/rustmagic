@@ -125,9 +125,15 @@ add_library(RustMagicTSF SHARED
 target_include_directories(RustMagicTSF PRIVATE "${RUSTMAGIC_FFI_INCLUDE}")
 add_dependencies(RustMagicTSF km_ffi_static)
 
+# The engine is a Rust static library, and a static library does not carry the
+# system libraries the Rust standard library calls: the futex parking, sockets
+# and the crypto it links against are the host's, so they are named here. A
+# missing one of these is an undefined reference to WakeByAddressSingle or
+# WSAGetLastError at the very last step of the build.
 target_link_libraries(RustMagicTSF PRIVATE
     "${RUSTMAGIC_FFI_BUILT}"
-    ole32 oleaut32 uuid advapi32 shlwapi user32 kernel32)
+    ole32 oleaut32 uuid advapi32 shlwapi user32 kernel32
+    ws2_32 userenv bcrypt ntdll synchronization)
 
 if(RUSTMAGIC_ICON_FILE)
     get_filename_component(ICON_DIR "${RUSTMAGIC_ICON_FILE}" DIRECTORY)
@@ -146,7 +152,13 @@ if(MSVC)
     target_link_options(RustMagicTSF PRIVATE /DEF:"${CMAKE_CURRENT_SOURCE_DIR}/tsf.def")
 else()
     target_compile_options(RustMagicTSF PRIVATE -Wall -Wextra -Wpedantic -finput-charset=UTF-8)
+    # A text service is loaded into other people's processes, so it may not
+    # depend on the compiler's own runtime DLLs: they exist on the machine that
+    # built it and on no one else's. Static libgcc and libstdc++, stripped in a
+    # release build.
     target_link_options(RustMagicTSF PRIVATE
+        -static-libgcc -static-libstdc++
+        $<$<CONFIG:Release>:-s>
         "-Wl,--kill-at"
         "${CMAKE_CURRENT_SOURCE_DIR}/tsf.def")
 endif()
