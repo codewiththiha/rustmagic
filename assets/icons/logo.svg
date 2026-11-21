@@ -1,0 +1,11 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- The mark: a slab on a slight tilt, the way the keyboard this engine came
+       from drew its own, with a faceted stone cut into it. Obsidian, with the
+       accent colour left to the window to supply. -->
+  <g transform="rotate(-12 12 12)">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="5.2" fill="currentColor" fill-opacity="0.16"/>
+    <rect x="3.5" y="3.5" width="17" height="17" rx="5.2" stroke="currentColor" stroke-width="1.7"/>
+    <path d="M12 7.1 16.9 12 12 16.9 7.1 12Z" fill="currentColor" fill-opacity="0.92"/>
+    <path d="M12 7.1 7.1 12h9.8Z" fill="currentColor" fill-opacity="0.38"/>
+  </g>
+</svg>

@@ -1,0 +1,5 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Zawgyi: the older face, still everywhere. Set text, each line shorter than
+       the one above it, the way a page runs out. -->
+  <path d="M4.8 7.4h14.4M4.8 12h9.8M4.8 16.6h6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+</svg>

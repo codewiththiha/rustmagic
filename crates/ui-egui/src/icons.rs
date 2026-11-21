@@ -51,6 +51,18 @@ pub enum Icon {
     Moon,
     /// Follow the desktop.
     Monitor,
+    /// The application's own mark.
+    Logo,
+    /// The bundled my-win layout.
+    MyWin,
+    /// The bundled Pyidaungsu layout.
+    Pyidaungsu,
+    /// The bundled MyanSan layout.
+    MyanSan,
+    /// The bundled Zawgyi layout.
+    Zawgyi,
+    /// The bundled ZawCode layout.
+    ZawCode,
 }
 
 impl Icon {
@@ -64,7 +76,7 @@ impl Icon {
     ];
 
     /// Every icon, so a test can walk the set without a list to keep in step.
-    pub const ALL: [Self; 18] = [
+    pub const ALL: [Self; 24] = [
         Self::Library,
         Self::Keyboard,
         Self::Grid,
@@ -83,6 +95,12 @@ impl Icon {
         Self::Sun,
         Self::Moon,
         Self::Monitor,
+        Self::Logo,
+        Self::MyWin,
+        Self::Pyidaungsu,
+        Self::MyanSan,
+        Self::Zawgyi,
+        Self::ZawCode,
     ];
 
     /// The file these bytes came from, for the image cache key.
@@ -106,6 +124,12 @@ impl Icon {
             Self::Sun => "bytes://sun.svg",
             Self::Moon => "bytes://moon.svg",
             Self::Monitor => "bytes://monitor.svg",
+            Self::Logo => "bytes://logo.svg",
+            Self::MyWin => "bytes://keyboard-myin.svg",
+            Self::Pyidaungsu => "bytes://keyboard-pyidaungsu.svg",
+            Self::MyanSan => "bytes://keyboard-myansan.svg",
+            Self::Zawgyi => "bytes://keyboard-zawgyi.svg",
+            Self::ZawCode => "bytes://keyboard-zawcode.svg",
         }
     }
 
@@ -129,6 +153,29 @@ impl Icon {
             Self::Sun => include_bytes!("../../../assets/icons/sun.svg"),
             Self::Moon => include_bytes!("../../../assets/icons/moon.svg"),
             Self::Monitor => include_bytes!("../../../assets/icons/monitor.svg"),
+            Self::Logo => include_bytes!("../../../assets/icons/logo.svg"),
+            Self::MyWin => include_bytes!("../../../assets/icons/keyboard-myin.svg"),
+            Self::Pyidaungsu => include_bytes!("../../../assets/icons/keyboard-pyidaungsu.svg"),
+            Self::MyanSan => include_bytes!("../../../assets/icons/keyboard-myansan.svg"),
+            Self::Zawgyi => include_bytes!("../../../assets/icons/keyboard-zawgyi.svg"),
+            Self::ZawCode => include_bytes!("../../../assets/icons/keyboard-zawcode.svg"),
+        }
+    }
+
+    /// The mark of an installed keyboard, by the id the library gave it.
+    ///
+    /// The five that ship with the app have a mark of their own, drawn in the
+    /// same language as the icons: a slab on a tilt with what the keyboard is
+    /// cut into it. A keyboard a user installed has none, and gets `None` so the
+    /// card can fall back to something the library does know about.
+    pub fn for_keyboard(id: &str) -> Option<Self> {
+        match id {
+            "my-win" => Some(Self::MyWin),
+            "pyidaungsu-mm" => Some(Self::Pyidaungsu),
+            "myansan" => Some(Self::MyanSan),
+            "zawgyi" => Some(Self::Zawgyi),
+            "zawcode" => Some(Self::ZawCode),
+            _ => None,
         }
     }
 

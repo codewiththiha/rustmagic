@@ -266,22 +266,15 @@ impl Ui {
                 ui.horizontal(|ui| {
                     let side = if compact { 32.0 } else { 34.0 };
                     let (rect, _) = ui.allocate_exact_size(Vec2::splat(side), egui::Sense::hover());
+                    // The plate is the accent and the mark is cut out of it: on a
+                    // gold plate a gold mark would be invisible, so the icon is
+                    // drawn in the ink the buttons use on the accent.
                     ui.painter()
                         .rect_filled(rect, Rounding::same(10.0), palette.accent);
-                    // A lighter square inside the mark, the way an icon sits on a
-                    // plate: it stops the logo reading as a plain coloured box.
-                    ui.painter().rect_filled(
-                        rect.shrink(3.0),
-                        Rounding::same(7.0),
-                        Color32::from_white_alpha(22),
-                    );
-                    ui.painter().text(
-                        rect.center(),
-                        egui::Align2::CENTER_CENTER,
-                        "R",
-                        theme::bold(18.0),
-                        Color32::WHITE,
-                    );
+                    let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect).layout(
+                        egui::Layout::centered_and_justified(egui::Direction::TopDown),
+                    ));
+                    child.add(Icon::Logo.image(side * 0.82, palette.on_accent));
                     if !compact {
                         ui.add_space(4.0);
                         ui.vertical(|ui| {
@@ -405,7 +398,7 @@ impl Ui {
                             });
                             if !narrow {
                                 ui.add_space(8.0);
-                                widgets::pill(ui, palette, "active", palette.good);
+                                widgets::pill(ui, palette, "active", palette.accent);
                             }
                         }
                         None => {

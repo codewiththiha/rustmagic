@@ -237,22 +237,18 @@ fn card(
             ui.set_width(ui.available_width());
             ui.set_min_height(CARD_HEIGHT - 36.0);
             ui.horizontal(|ui| {
-                let (rect, _) = ui.allocate_exact_size(Vec2::splat(32.0), egui::Sense::hover());
+                let (rect, _) = ui.allocate_exact_size(Vec2::splat(34.0), egui::Sense::hover());
+                // The five bundled keyboards have a mark of their own, drawn from
+                // what each of them is. Anything a user installed gets the plain
+                // keyboard glyph on the same plate, so the row still lines up.
+                let mark = Icon::for_keyboard(&entry.id).unwrap_or(Icon::Keyboard);
                 ui.painter()
                     .rect_filled(rect, Rounding::same(10.0), palette.accent_soft);
-                ui.painter().text(
-                    rect.center(),
-                    egui::Align2::CENTER_CENTER,
-                    entry
-                        .display_name()
-                        .chars()
-                        .next()
-                        .unwrap_or('?')
-                        .to_uppercase()
-                        .to_string(),
-                    crate::theme::bold(15.0),
-                    palette.accent,
-                );
+                let mut child =
+                    ui.new_child(egui::UiBuilder::new().max_rect(rect.shrink(6.0)).layout(
+                        egui::Layout::centered_and_justified(egui::Direction::TopDown),
+                    ));
+                child.add(mark.image(22.0, palette.accent));
                 ui.add_space(2.0);
                 ui.vertical(|ui| {
                     ui.add(

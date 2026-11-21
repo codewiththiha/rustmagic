@@ -54,7 +54,7 @@ pub fn pill(ui: &mut Ui, palette: &Palette, text: &str, tint: Color32) {
 pub fn primary_button(ui: &mut Ui, palette: &Palette, text: &str) -> Response {
     let galley = ui
         .painter()
-        .layout_no_wrap(text.to_owned(), theme::bold(13.0), Color32::WHITE);
+        .layout_no_wrap(text.to_owned(), theme::bold(13.0), palette.on_accent);
     let size = Vec2::new(galley.size().x + 28.0, 32.0);
     let (rect, response) = ui.allocate_exact_size(size, Sense::click());
     let fill = if response.is_pointer_button_down_on() {
@@ -175,37 +175,50 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap, size: Vec2) {
     let scale = (size.x / 74.0).clamp(0.55, 1.0);
     let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
     let hovered = response.hovered();
-    let rounding = Rounding::same(11.0 * scale);
+    let rounding = Rounding::same(9.0 * scale);
+    // A key is a block with a top face, not a rectangle drawn on the card: the
+    // skirt under it is what makes it stand up.
+    let skirt = rect;
+    let face = Rect::from_min_max(
+        rect.min + Vec2::new(0.0, 0.0),
+        rect.max - Vec2::new(0.0, 3.5 * scale),
+    );
     ui.painter().rect_filled(
-        rect,
+        skirt,
         rounding,
         if hovered {
-            palette.card_hover
+            palette.accent
         } else {
-            palette.card
+            palette.line
         },
     );
-    ui.painter().rect_stroke(
-        rect,
+    ui.painter().rect_filled(
+        face,
         rounding,
+        if hovered {
+            palette.accent_soft
+        } else {
+            palette.card_hover
+        },
+    );
+    // The top edge catches the light, and the bottom of the face keeps a hair of
+    // shadow so the skirt reads as thickness rather than as a border.
+    ui.painter().hline(
+        egui::Rangef::new(face.left() + 7.0 * scale, face.right() - 7.0 * scale),
+        face.top() + 1.0,
         Stroke::new(
             1.0_f32,
             if hovered {
                 palette.accent
             } else {
-                palette.line
+                Color32::from_white_alpha(if palette.bg.r() < 128 { 22 } else { 150 })
             },
         ),
     );
-    // A cap is lit from above: one bright hairline along the top edge is what
-    // separates a key from a box with a border.
     ui.painter().hline(
-        egui::Rangef::new(rect.left() + 8.0 * scale, rect.right() - 8.0 * scale),
-        rect.top() + 1.5,
-        Stroke::new(
-            1.0_f32,
-            Color32::from_white_alpha(if hovered { 26 } else { 14 }),
-        ),
+        face.x_range(),
+        face.bottom() - 0.5,
+        Stroke::new(1.0_f32, palette.line),
     );
     let glyph = if cap.plain.is_empty() {
         "·"
@@ -213,14 +226,14 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap, size: Vec2) {
         cap.plain.as_str()
     };
     ui.painter().text(
-        rect.left_top() + Vec2::new(11.0 * scale, 8.0 * scale),
+        face.left_top() + Vec2::new(9.0 * scale, 6.0 * scale),
         Align2::LEFT_TOP,
         &cap.label,
-        theme::bold(11.0 * scale),
+        theme::bold(10.5 * scale),
         palette.muted,
     );
     ui.painter().text(
-        rect.center_bottom() - Vec2::new(0.0, 12.0 * scale),
+        face.center_bottom() - Vec2::new(0.0, 8.0 * scale),
         Align2::CENTER_BOTTOM,
         glyph,
         egui::FontId::proportional(26.0 * scale),
@@ -228,11 +241,15 @@ pub fn keycap(ui: &mut Ui, palette: &Palette, cap: &KeyCap, size: Vec2) {
     );
     if cap.shifted != cap.plain {
         ui.painter().text(
-            rect.right_top() + Vec2::new(-11.0 * scale, 8.0 * scale),
+            face.right_top() + Vec2::new(-9.0 * scale, 6.0 * scale),
             Align2::RIGHT_TOP,
             &cap.shifted,
             egui::FontId::proportional(13.0 * scale),
-            palette.accent,
+            if hovered {
+                palette.text
+            } else {
+                palette.accent
+            },
         );
     }
 }
@@ -319,14 +336,6 @@ pub fn nav_row(
                 palette.card_hover
             },
         );
-    }
-    if active {
-        let bar = Rect::from_min_size(
-            rect.left_top() + Vec2::new(0.0, 10.0),
-            Vec2::new(3.0, height - 20.0),
-        );
-        ui.painter()
-            .rect_filled(bar, Rounding::same(2.0), palette.accent);
     }
     let colour = if active {
         palette.accent

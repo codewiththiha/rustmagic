@@ -26,6 +26,9 @@ pub struct Palette {
     pub accent: Color32,
     /// The accent under the pointer, a step brighter than the accent itself.
     pub accent_hover: Color32,
+    /// Text and marks that sit *on* the accent: dark on gold, light on a dark
+    /// accent, whichever the mood needs to stay readable.
+    pub on_accent: Color32,
     /// Accent at low strength, for fills.
     pub accent_soft: Color32,
     /// Success.
@@ -38,43 +41,49 @@ pub struct Palette {
     pub paper: Color32,
 }
 
-/// The dark mood, which the app opens in.
+/// The dark mood, which the app opens in: obsidian and gold.
 ///
-/// Slate rather than blue: enough cool in it to sit beside the indigo accent
-/// without every surface reading as the same colour as every other.
+/// Near-black with a warm cast rather than a blue one, and the one colour the
+/// eye lands on is gold. Everything else is grey with enough brown in it to sit
+/// beside the accent instead of fighting it.
 pub const DARK: Palette = Palette {
-    bg: Color32::from_rgb(12, 14, 20),
-    panel: Color32::from_rgb(17, 20, 28),
-    card: Color32::from_rgb(22, 26, 36),
-    card_hover: Color32::from_rgb(29, 34, 47),
-    line: Color32::from_rgb(38, 44, 59),
-    text: Color32::from_rgb(236, 239, 247),
-    muted: Color32::from_rgb(148, 158, 180),
-    accent: Color32::from_rgb(122, 138, 255),
-    accent_hover: Color32::from_rgb(146, 159, 255),
-    accent_soft: Color32::from_rgb(38, 45, 78),
-    good: Color32::from_rgb(88, 214, 141),
-    warn: Color32::from_rgb(240, 190, 100),
-    bad: Color32::from_rgb(242, 118, 128),
-    paper: Color32::from_rgb(26, 30, 42),
+    bg: Color32::from_rgb(10, 10, 11),
+    panel: Color32::from_rgb(18, 18, 20),
+    card: Color32::from_rgb(23, 23, 26),
+    card_hover: Color32::from_rgb(31, 31, 35),
+    line: Color32::from_rgb(44, 44, 50),
+    text: Color32::from_rgb(242, 239, 232),
+    muted: Color32::from_rgb(156, 150, 138),
+    accent: Color32::from_rgb(224, 179, 65),
+    accent_hover: Color32::from_rgb(240, 197, 90),
+    on_accent: Color32::from_rgb(22, 18, 10),
+    accent_soft: Color32::from_rgb(43, 36, 22),
+    good: Color32::from_rgb(127, 192, 138),
+    warn: Color32::from_rgb(232, 163, 60),
+    bad: Color32::from_rgb(217, 104, 95),
+    paper: Color32::from_rgb(20, 20, 23),
 };
 
-/// The light mood.
+/// The light mood: the same stone in daylight.
+///
+/// The accent is a dark gold here rather than the bright one, because gold on
+/// white is a highlighter and dark gold on white is ink.
 pub const LIGHT: Palette = Palette {
-    bg: Color32::from_rgb(247, 248, 252),
+    bg: Color32::from_rgb(246, 243, 236),
     panel: Color32::from_rgb(255, 255, 255),
     card: Color32::from_rgb(255, 255, 255),
-    card_hover: Color32::from_rgb(243, 245, 252),
-    line: Color32::from_rgb(220, 225, 237),
-    text: Color32::from_rgb(24, 28, 40),
-    muted: Color32::from_rgb(101, 111, 132),
-    accent: Color32::from_rgb(79, 94, 224),
-    accent_hover: Color32::from_rgb(62, 76, 204),
-    accent_soft: Color32::from_rgb(233, 236, 255),
-    good: Color32::from_rgb(34, 150, 92),
-    warn: Color32::from_rgb(172, 124, 24),
-    bad: Color32::from_rgb(202, 60, 76),
-    paper: Color32::from_rgb(251, 251, 254),
+    card_hover: Color32::from_rgb(241, 237, 228),
+    line: Color32::from_rgb(224, 217, 203),
+    text: Color32::from_rgb(26, 24, 21),
+    muted: Color32::from_rgb(109, 101, 88),
+    accent: Color32::from_rgb(166, 122, 18),
+    accent_hover: Color32::from_rgb(138, 100, 16),
+    on_accent: Color32::from_rgb(255, 253, 246),
+    accent_soft: Color32::from_rgb(245, 237, 216),
+    good: Color32::from_rgb(47, 125, 79),
+    warn: Color32::from_rgb(138, 100, 16),
+    bad: Color32::from_rgb(176, 67, 58),
+    paper: Color32::from_rgb(251, 249, 244),
 };
 
 /// The palette for a mood.
@@ -210,9 +219,9 @@ pub fn apply(context: &Context, palette: &Palette, dark: bool) {
     // The panel behind a text field, so a path field looks like a field instead
     // of a hole in the card.
     visuals.extreme_bg_color = if dark {
-        Color32::from_rgb(15, 18, 25)
+        Color32::from_rgb(14, 14, 16)
     } else {
-        Color32::from_rgb(246, 247, 251)
+        Color32::from_rgb(247, 244, 238)
     };
     context.style_mut(|style| {
         style.visuals = visuals;
