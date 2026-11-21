@@ -127,11 +127,15 @@ fn what_pyidaungsu_says_about_the_vowel_e() {
     println!("\n=== pyidaungsu-mm, rules containing the vowel or invisible characters");
     for rule in &raw.rules {
         if rule.rhs.contains(&0x1031)
-            || rule.rhs.iter().any(|word| {
-                FURNITURE.contains(&char::from_u32(u32::from(*word)).unwrap_or(' '))
-            })
+            || rule
+                .rhs
+                .iter()
+                .any(|word| FURNITURE.contains(&char::from_u32(u32::from(*word)).unwrap_or(' ')))
         {
-            println!("  #{} lhs={:04X?} rhs={:04X?}", rule.index, rule.lhs, rule.rhs);
+            println!(
+                "  #{} lhs={:04X?} rhs={:04X?}",
+                rule.index, rule.lhs, rule.rhs
+            );
         }
     }
     println!("=== decoded engine rules that emit the vowel or invisible characters");
