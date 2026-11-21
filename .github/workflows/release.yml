@@ -99,6 +99,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           draft: true
+          overwrite_files: true
           files: |
             dist/rustmagic-*.tar.gz
             dist/rustmagic-*.sha256
@@ -183,6 +184,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           draft: true
+          overwrite_files: true
           files: |
             dist/*.tar.gz
             dist/*.tar.gz.sha256
@@ -228,6 +230,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           draft: true
+          overwrite_files: true
           files: dist/*.rpm
 
   macos:
@@ -403,6 +406,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           draft: true
+          overwrite_files: true
           files: |
             dist/*.dmg
             dist/*.dmg.sha256
@@ -622,6 +626,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           draft: true
+          overwrite_files: true
           files: |
             dist/*Setup*.exe
             dist/*.msi
@@ -695,6 +700,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           draft: true
+          overwrite_files: true
           files: /tmp/assets/*
 
   crates:
@@ -806,13 +812,14 @@ jobs:
           cat <<'TXT' | sed 's/^          //' > "$notes"
           One engine, and an installer for every platform, built from the tag.
 
-          **0.2.1 fixes the Pyidaungsu MM layout and macOS input adapter.** The
-          release migrates only the exact broken 0.2.0 Pyidaungsu MM and MyanSan
-          files, keeps other user keyboard files, reads the keyboard library from
-          the manager's actual data directory, and applies Rust engine edits by
-          Unicode scalar rather than Swift grapheme cluster. CI checks `a`, `t`,
-          `;` in the engine and checks the scalar edit boundary. Typing in a real
-          macOS text field has not been observed in CI; test it after installing.
+          **0.2.3 improves Pyidaungsu MM handling and mixed keyboard/text input.**
+          It fixes Shift+G mapping on macOS, preserves punctuation in Try It when
+          physical-key and text events arrive together, and asks macOS clients to
+          display composing text as unselected marked text. The regression test
+          checks the `a`, `t`, `;` sequence produces `အေး` without U+200C. CI cannot
+          confirm the appearance in a real macOS text field; test it after installing.
+          This release also keeps the exact-file migration for broken 0.2.0
+          Pyidaungsu MM and MyanSan files and applies engine edits by Unicode scalar.
 
           | Platform | Download | Install with |
           | --- | --- | --- |

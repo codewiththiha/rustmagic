@@ -134,29 +134,141 @@ fn composition(ui: &mut egui::Ui, session: &mut Session, palette: &Palette, min_
         // The window is not a text field, so the page collects the keystrokes
         // the physical keyboard sent this frame and hands them to the engine.
         if typing {
-            let mut typed = String::new();
-            let mut backspace = false;
-            ui.input(|input| {
-                for event in &input.events {
-                    match event {
-                        egui::Event::Text(text) => typed.push_str(text),
-                        egui::Event::Key {
-                            key: egui::Key::Backspace,
-                            pressed: true,
-                            ..
-                        } => backspace = true,
-                        _ => {}
+            let actions = ui.input(|input| sandbox_inputs(&input.events));
+            for action in actions {
+                match action {
+                    SandboxInput::PhysicalKey { key, modifiers } => {
+                        session.execute(Command::SandboxKey { key, modifiers });
                     }
+                    SandboxInput::Text(text) => {
+                        session.execute(Command::SandboxType { text });
+                    }
+                    SandboxInput::Backspace => session.execute(Command::SandboxBackspace),
                 }
-            });
-            if !typed.is_empty() {
-                session.execute(Command::SandboxType { text: typed });
-            }
-            if backspace {
-                session.execute(Command::SandboxBackspace);
             }
         }
     });
+}
+
+#[derive(Debug, PartialEq)]
+enum SandboxInput {
+    PhysicalKey { key: u16, modifiers: Modifiers },
+    Text(String),
+    Backspace,
+}
+
+/// Translate this frame's events without dropping text events unrelated to a
+/// physical letter key. egui reports both a key and its printable text on
+/// desktop; remove only those duplicate ASCII letters, preserving punctuation
+/// and composed text in the original event order.
+fn sandbox_inputs(events: &[egui::Event]) -> Vec<SandboxInput> {
+    let mut duplicate_letters = Vec::new();
+    for event in events {
+        if let egui::Event::Key {
+            key,
+            pressed: true,
+            modifiers,
+            ..
+        } = event
+        {
+            if !modifiers.command && !modifiers.ctrl {
+                if let Some(key) = virtual_key(*key) {
+                    duplicate_letters.push((key as u8 as char).to_ascii_lowercase());
+                }
+            }
+        }
+    }
+
+    let mut actions = Vec::new();
+    for event in events {
+        match event {
+            egui::Event::Text(text) => {
+                let remaining: String = text
+                    .chars()
+                    .filter(|character| {
+                        let duplicate = character.to_ascii_lowercase();
+                        if character.is_ascii_alphabetic()
+                            && let Some(index) = duplicate_letters
+                                .iter()
+                                .position(|letter| *letter == duplicate)
+                        {
+                            duplicate_letters.remove(index);
+                            false
+                        } else {
+                            true
+                        }
+                    })
+                    .collect();
+                if !remaining.is_empty() {
+                    actions.push(SandboxInput::Text(remaining));
+                }
+            }
+            egui::Event::Key {
+                key: egui::Key::Backspace,
+                pressed: true,
+                ..
+            } => actions.push(SandboxInput::Backspace),
+            egui::Event::Key {
+                key,
+                pressed: true,
+                modifiers,
+                ..
+            } if !modifiers.command && !modifiers.ctrl => {
+                if let Some(key) = virtual_key(*key) {
+                    actions.push(SandboxInput::PhysicalKey {
+                        key,
+                        modifiers: Modifiers {
+                            shift: modifiers.shift,
+                            control: false,
+                            alt: modifiers.alt,
+                            alt_gr: false,
+                            caps: false,
+                        },
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+    actions
+}
+
+/// The Windows virtual-key code for a physical letter key.
+///
+/// KeyMagic layouts name these keys, not the character produced by the
+/// operating-system keyboard layout. Non-letter and composed text continues
+/// through `Event::Text` above.
+fn virtual_key(key: egui::Key) -> Option<u16> {
+    let letter = match key {
+        egui::Key::A => b'A',
+        egui::Key::B => b'B',
+        egui::Key::C => b'C',
+        egui::Key::D => b'D',
+        egui::Key::E => b'E',
+        egui::Key::F => b'F',
+        egui::Key::G => b'G',
+        egui::Key::H => b'H',
+        egui::Key::I => b'I',
+        egui::Key::J => b'J',
+        egui::Key::K => b'K',
+        egui::Key::L => b'L',
+        egui::Key::M => b'M',
+        egui::Key::N => b'N',
+        egui::Key::O => b'O',
+        egui::Key::P => b'P',
+        egui::Key::Q => b'Q',
+        egui::Key::R => b'R',
+        egui::Key::S => b'S',
+        egui::Key::T => b'T',
+        egui::Key::U => b'U',
+        egui::Key::V => b'V',
+        egui::Key::W => b'W',
+        egui::Key::X => b'X',
+        egui::Key::Y => b'Y',
+        egui::Key::Z => b'Z',
+        _ => return None,
+    };
+    Some(u16::from(letter))
 }
 
 /// Whether the text needs a shaping engine to be drawn the way it is printed.
@@ -302,4 +414,88 @@ fn log(ui: &mut egui::Ui, session: &Session, palette: &Palette, min_height: f32)
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Command, Modifiers, virtual_key};
+
+    #[test]
+    fn physical_g_uses_the_keymagic_virtual_key() {
+        assert_eq!(virtual_key(egui::Key::G), Some(0x47));
+    }
+
+    #[test]
+    fn non_letter_keys_fall_back_to_text_events() {
+        assert_eq!(virtual_key(egui::Key::Backspace), None);
+    }
+
+    fn pyidaungsu_session(name: &str) -> (km_session::Session, std::path::PathBuf) {
+        let root =
+            std::env::temp_dir().join(format!("rustmagic-try-it-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let mut session = km_session::Session::open(Box::new(km_session::HeadlessHost::new(&root)));
+        session.execute(Command::SelectKeyboard {
+            id: "pyidaungsu-mm".into(),
+        });
+        (session, root)
+    }
+
+    #[test]
+    fn shifted_physical_g_types_medial_wa_in_the_sandbox() {
+        let (mut session, root) = pyidaungsu_session("shift-g");
+        session.execute(Command::SandboxKey {
+            key: virtual_key(egui::Key::G).expect("G has a virtual key"),
+            modifiers: Modifiers::NONE.shift(),
+        });
+        assert_eq!(session.sandbox().text(), "\u{103D}");
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn mixed_physical_and_text_events_keep_pyidaungsu_vowel_order() {
+        let (mut session, root) = pyidaungsu_session("vowel-order");
+        let events = [
+            egui::Event::Key {
+                key: egui::Key::A,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            },
+            egui::Event::Text("a".into()),
+            egui::Event::Key {
+                key: egui::Key::T,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            },
+            egui::Event::Text("t".into()),
+            egui::Event::Key {
+                key: egui::Key::Semicolon,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            },
+            egui::Event::Text(";".into()),
+        ];
+        for action in super::sandbox_inputs(&events) {
+            match action {
+                super::SandboxInput::PhysicalKey { key, modifiers } => {
+                    session.execute(Command::SandboxKey { key, modifiers });
+                }
+                super::SandboxInput::Text(text) => {
+                    session.execute(Command::SandboxType { text });
+                }
+                super::SandboxInput::Backspace => {
+                    session.execute(Command::SandboxBackspace);
+                }
+            }
+        }
+        assert_eq!(session.sandbox().text(), "အေး");
+        assert!(!session.sandbox().text().contains('\u{200C}'));
+        let _ = std::fs::remove_dir_all(root);
+    }
 }

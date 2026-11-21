@@ -1,5 +1,6 @@
 import Cocoa
 import InputMethodKit
+import Carbon
 
 /// The input method itself: what macOS talks to when RustMagic is the selected
 /// input source.
@@ -69,12 +70,19 @@ final class RustMagicInputController: IMKInputController {
         }
 
         let flags = event.modifierFlags
-        let shift = flags.contains(.shift)
         let caps = flags.contains(.capsLock)
+        let produced = event.characters?.unicodeScalars.first
+        let uppercaseASCII = produced.map { (0x41...0x5A).contains($0.value) } ?? false
+        // Some InputMethodKit clients preserve the shifted character but omit
+        // Shift from modifierFlags. Keep the physical Shift flag authoritative,
+        // with the event's produced ASCII case as a fallback (not Caps Lock).
+        let shift = flags.contains(.shift) || (!caps && uppercaseASCII)
         let control = flags.contains(.control)
         let option = flags.contains(.option)
         let command = flags.contains(.command)
         let key = Keycodes.virtualKey(for: event.keyCode)
+        let character = Keycodes.character(for: key, shift: shift, caps: caps)
+            ?? event.charactersIgnoringModifiers?.unicodeScalars.first
 
         // Escape throws away what is composing, the way every input method does.
         if key == 0x1B {
@@ -116,7 +124,6 @@ final class RustMagicInputController: IMKInputController {
             return true
         }
 
-        let character = event.charactersIgnoringModifiers?.unicodeScalars.first
         let edit = engine.process(key: key, character: character, shift: shift, control: control,
                                   option: option, caps: caps)
         guard edit.consumed else {
@@ -152,8 +159,17 @@ final class RustMagicInputController: IMKInputController {
     }
 
     private func show(client: IMKTextInput) {
-        let caret = NSRange(location: (composing as NSString).length, length: 0)
-        client.setMarkedText(composing, selectionRange: caret, replacementRange: Self.markedRange)
+        let length = (composing as NSString).length
+        let range = NSRange(location: 0, length: length)
+        let caret = NSRange(location: length, length: 0)
+        // Sending a plain String makes many clients draw the whole marked range
+        // with their selected-raw-text appearance (often a blue fill). Mark the
+        // ongoing composition as converted, unselected text instead, while
+        // keeping the insertion caret at its actual end.
+        let attributes = mark(forStyle: kTSMHiliteConvertedText, at: range)
+            as? [NSAttributedString.Key: Any] ?? [:]
+        let marked = NSAttributedString(string: composing, attributes: attributes)
+        client.setMarkedText(marked, selectionRange: caret, replacementRange: Self.markedRange)
     }
 
     /// Turns the marked text into ordinary text. Nothing else changes: this is

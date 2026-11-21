@@ -19,6 +19,7 @@ final class Engine {
     private var engine: OpaquePointer?
     private(set) var keyboardID: String = ""
     private var loadedPath: String = ""
+    private var loadedBytes: Data?
 
     var isReady: Bool { engine != nil }
 
@@ -184,13 +185,23 @@ final class Engine {
     /// both read the same file.
     @discardableResult
     func load(_ path: URL) -> Bool {
-        if path.path == loadedPath, engine != nil {
+        guard let bytes = try? Data(contentsOf: path) else {
+            unload()
+            return false
+        }
+        if path.path == loadedPath, engine != nil, bytes == loadedBytes {
             return true
         }
         unload()
 
         var error: UnsafeMutablePointer<CChar>?
-        guard let loaded = rm_keyboard_load(path.path, &error) else {
+        let loaded = bytes.withUnsafeBytes { rawBuffer -> OpaquePointer? in
+            guard let base = rawBuffer.bindMemory(to: UInt8.self).baseAddress else {
+                return nil
+            }
+            return rm_keyboard_from_bytes(base, bytes.count, &error)
+        }
+        guard let loaded else {
             if let error {
                 rm_string_free(error)
             }
@@ -203,6 +214,7 @@ final class Engine {
         keyboard = loaded
         engine = created
         loadedPath = path.path
+        loadedBytes = bytes
         keyboardID = path.deletingPathExtension().lastPathComponent
         return true
     }
@@ -249,6 +261,7 @@ final class Engine {
             self.keyboard = nil
         }
         loadedPath = ""
+        loadedBytes = nil
         keyboardID = ""
     }
 }

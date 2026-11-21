@@ -119,6 +119,18 @@ enum Keycodes {
         }
     }
 
+    /// The character a physical letter key produces under Shift/Caps Lock.
+    ///
+    /// `charactersIgnoringModifiers` may return lowercase `g` for Shift+G. The
+    /// KeyMagic rule matches the shifted character `G`, so the adapter must
+    /// reconstruct the text from the physical key and modifiers.
+    static func character(for key: UInt16, shift: Bool, caps: Bool) -> Unicode.Scalar? {
+        guard (0x41...0x5A).contains(key) else { return nil }
+        let uppercase = shift != caps
+        let value = uppercase ? UInt32(key) : UInt32(key + 0x20)
+        return Unicode.Scalar(value)
+    }
+
     /// Keys that end a syllable and belong to the application rather than to the
     /// layout: what the user means by them is "I am finished with this word".
     static func endsSyllable(_ key: UInt16) -> Bool {

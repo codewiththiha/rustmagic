@@ -84,6 +84,10 @@ char *rm_engine_context(const rm_engine *engine);
  *   key     virtual-key code, 0 when the key has none (see km_core::vk)
  *   ch      the character the keyboard produced for the key, or 0
  *   shift, control, alt, alt_gr, caps   modifier state, 0 or 1
+ *
+ * For an ASCII letter key, the ABI derives case from Shift/Caps so a host may
+ * provide the unshifted letter even when a shifted rule is being tested.
+ *
  *   out     optional; receives the edit the host should apply
  *
  * Returns 1 when the engine consumed the key, 0 when the host should type it.

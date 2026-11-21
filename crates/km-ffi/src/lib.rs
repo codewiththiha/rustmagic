@@ -56,6 +56,22 @@ pub struct rm_edit {
 
 static LAST_ERROR: AtomicU32 = AtomicU32::new(0);
 
+fn input_character(key: u16, ch: u32, shift: c_int, caps: c_int) -> Option<char> {
+    let character = char::from_u32(ch)?;
+    let Some(letter) = char::from_u32(u32::from(key)).filter(char::is_ascii_uppercase) else {
+        return Some(character);
+    };
+    if !character.is_ascii_alphabetic() || character.to_ascii_uppercase() != letter {
+        return Some(character);
+    }
+    let uppercase = (shift != 0) ^ (caps != 0);
+    Some(if uppercase {
+        letter
+    } else {
+        letter.to_ascii_lowercase()
+    })
+}
+
 fn owned(text: &str) -> *mut c_char {
     CString::new(text)
         .unwrap_or_else(|_| CString::new(text.replace('\0', "")).unwrap_or_default())
@@ -270,8 +286,10 @@ pub unsafe extern "C" fn rm_engine_context(engine: *const rm_engine) -> *mut c_c
 /// Feeds one key to the engine and reports what the host should write.
 ///
 /// `ch` is the character the keyboard produced for the key, or 0 when the key
-/// produces none. `out` may be null when the caller only wants the return value,
-/// which is 1 when the engine consumed the key and 0 when the host should type it.
+/// produces none. For ASCII letter keys, case is normalized from Shift/Caps too,
+/// so a host that reports the unshifted character still matches shifted rules.
+/// `out` may be null when the caller only wants the return value, which is 1
+/// when the engine consumed the key and 0 when the host should type it.
 ///
 /// # Safety
 ///
@@ -293,7 +311,7 @@ pub unsafe extern "C" fn rm_engine_key(
     };
     let input = KeyInput {
         key,
-        text: char::from_u32(ch),
+        text: input_character(key, ch, shift, caps),
         modifiers: Modifiers {
             shift: shift != 0,
             control: control != 0,
@@ -346,7 +364,7 @@ pub unsafe extern "C" fn rm_engine_key_test(
     };
     let input = KeyInput {
         key,
-        text: char::from_u32(ch),
+        text: input_character(key, ch, shift, caps),
         modifiers: Modifiers {
             shift: shift != 0,
             control: control != 0,
@@ -391,6 +409,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn ascii_letter_text_follows_shift_and_caps_flags() {
+        assert_eq!(input_character(0x47, u32::from('g'), 1, 0), Some('G'));
+        assert_eq!(input_character(0x47, u32::from('G'), 0, 1), Some('G'));
+        assert_eq!(input_character(0x47, u32::from('G'), 1, 1), Some('g'));
+        assert_eq!(input_character(0x47, u32::from('g'), 0, 0), Some('g'));
+        assert_eq!(input_character(0x47, 0x103D, 1, 0), Some('\u{103D}'));
+    }
+
+    #[test]
     fn a_null_handle_answers_neutral() {
         unsafe {
             assert_eq!(rm_keyboard_rule_count(ptr::null()), 0);
@@ -422,8 +449,14 @@ mod tests {
                 consumed: 0,
                 recursion_limit: 0,
             };
+            // InputMethodKit can return lowercase from `charactersIgnoringModifiers`
+            // even for Shift+G. The ABI must reconstruct the effective text.
+            assert_eq!(
+                rm_engine_key_test(engine, 0x47, u32::from('g'), 1, 0, 0, 0, 0),
+                1
+            );
             let consumed =
-                rm_engine_key(engine, 0x47, u32::from('G'), 1, 0, 0, 0, 0, &raw mut edit);
+                rm_engine_key(engine, 0x47, u32::from('g'), 1, 0, 0, 0, 0, &raw mut edit);
             assert_eq!(consumed, 1, "the layout consumes Shift+G");
             assert_eq!(CStr::from_ptr(edit.insert).to_str().unwrap(), "\u{103D}");
             rm_string_free(edit.insert);

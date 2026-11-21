@@ -1,0 +1,384 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="800" viewBox="0 0 2200 800">
+<rect width="100%" height="100%" fill="#10151d"/>
+<style>text{font-family:Inter,'Noto Sans Myanmar','Myanmar Text',sans-serif} .muted{fill:#9aa7b7} .white{fill:#f3f6fb}</style>
+<text x="44" y="52" class="white" font-size="28" font-weight="700">Pyidaungsu MM: attachment vs bundled layout</text>
+<text x="44" y="80" class="muted" font-size="15">KeyMagic .km2 comparison • layout values decoded by RustMagic's engine</text>
+
+<rect x="40" y="110" width="1040" height="590" rx="22" fill="#1c2430" stroke="#364352"/>
+<text x="64" y="148" class="white" font-size="21" font-weight="700">Attached .km2 renamed .txt</text>
+<text x="64" y="174" class="muted" font-size="13">72 total rules • 46 one-key mappings shown • 6,120 bytes • MD5 562f6824ccbe33697076e7e202d32ee6</text>
+<rect x="125.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="133.5" y="239" fill="#9aa7b7" font-size="11">1</text>
+<text x="158.5" y="266" text-anchor="middle" class="white" font-size="19">၁</text>
+<text x="158.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဍ</text>
+<rect x="198.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="206.5" y="239" fill="#9aa7b7" font-size="11">2</text>
+<text x="231.5" y="266" text-anchor="middle" class="white" font-size="19">၂</text>
+<text x="231.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၒ</text>
+<rect x="271.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="279.5" y="239" fill="#9aa7b7" font-size="11">3</text>
+<text x="304.5" y="266" text-anchor="middle" class="white" font-size="19">၃</text>
+<text x="304.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဋ</text>
+<rect x="344.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="352.5" y="239" fill="#9aa7b7" font-size="11">4</text>
+<text x="377.5" y="266" text-anchor="middle" class="white" font-size="19">၄</text>
+<text x="377.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၓ</text>
+<rect x="417.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="425.5" y="239" fill="#9aa7b7" font-size="11">5</text>
+<text x="450.5" y="266" text-anchor="middle" class="white" font-size="19">၅</text>
+<text x="450.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၔ</text>
+<rect x="490.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="498.5" y="239" fill="#9aa7b7" font-size="11">6</text>
+<text x="523.5" y="266" text-anchor="middle" class="white" font-size="19">၆</text>
+<text x="523.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၕ</text>
+<rect x="563.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="571.5" y="239" fill="#9aa7b7" font-size="11">7</text>
+<text x="596.5" y="266" text-anchor="middle" class="white" font-size="19">၇</text>
+<text x="596.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ရ</text>
+<rect x="636.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="644.5" y="239" fill="#9aa7b7" font-size="11">8</text>
+<text x="669.5" y="266" text-anchor="middle" class="white" font-size="19">၈</text>
+<text x="669.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ *</text>
+<rect x="709.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="717.5" y="239" fill="#9aa7b7" font-size="11">9</text>
+<text x="742.5" y="266" text-anchor="middle" class="white" font-size="19">၉</text>
+<text x="742.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ (</text>
+<rect x="782.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="790.5" y="239" fill="#9aa7b7" font-size="11">0</text>
+<text x="815.5" y="266" text-anchor="middle" class="white" font-size="19">၀</text>
+<text x="815.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ )</text>
+<rect x="855.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="863.5" y="239" fill="#9aa7b7" font-size="11">-</text>
+<text x="888.5" y="266" text-anchor="middle" class="white" font-size="19">-</text>
+<text x="888.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ _</text>
+<rect x="928.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="936.5" y="239" fill="#9aa7b7" font-size="11">=</text>
+<text x="961.5" y="266" text-anchor="middle" class="white" font-size="19">=</text>
+<text x="961.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ +</text>
+<rect x="103.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="111.0" y="338" fill="#9aa7b7" font-size="11">q</text>
+<text x="136.0" y="365" text-anchor="middle" class="white" font-size="19">ဆ</text>
+<text x="136.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဈ</text>
+<rect x="176.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="184.0" y="338" fill="#9aa7b7" font-size="11">w</text>
+<text x="209.0" y="365" text-anchor="middle" class="white" font-size="19">တ</text>
+<text x="209.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဝ</text>
+<rect x="249.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="257.0" y="338" fill="#9aa7b7" font-size="11">e</text>
+<text x="282.0" y="365" text-anchor="middle" class="white" font-size="19">န</text>
+<text x="282.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဣ</text>
+<rect x="322.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="330.0" y="338" fill="#9aa7b7" font-size="11">r</text>
+<text x="355.0" y="365" text-anchor="middle" class="white" font-size="19">မ</text>
+<text x="355.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၎င်း</text>
+<rect x="395.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="403.0" y="338" fill="#9aa7b7" font-size="11">t</text>
+<text x="428.0" y="365" text-anchor="middle" class="white" font-size="19">အ</text>
+<text x="428.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဤ</text>
+<rect x="468.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="476.0" y="338" fill="#9aa7b7" font-size="11">y</text>
+<text x="501.0" y="365" text-anchor="middle" class="white" font-size="19">ပ</text>
+<text x="501.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၌</text>
+<rect x="541.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="549.0" y="338" fill="#9aa7b7" font-size="11">u</text>
+<text x="574.0" y="365" text-anchor="middle" class="white" font-size="19">က</text>
+<text x="574.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဥ</text>
+<rect x="614.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="622.0" y="338" fill="#9aa7b7" font-size="11">i</text>
+<text x="647.0" y="365" text-anchor="middle" class="white" font-size="19">င</text>
+<text x="647.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၍</text>
+<rect x="687.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="695.0" y="338" fill="#9aa7b7" font-size="11">o</text>
+<text x="720.0" y="365" text-anchor="middle" class="white" font-size="19">သ</text>
+<text x="720.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဿ</text>
+<rect x="760.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="768.0" y="338" fill="#9aa7b7" font-size="11">p</text>
+<text x="793.0" y="365" text-anchor="middle" class="white" font-size="19">စ</text>
+<text x="793.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဏ</text>
+<rect x="833.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="841.0" y="338" fill="#9aa7b7" font-size="11">[</text>
+<text x="866.0" y="365" text-anchor="middle" class="white" font-size="19">ဟ</text>
+<text x="866.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဧ</text>
+<rect x="906.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="914.0" y="338" fill="#9aa7b7" font-size="11">]</text>
+<text x="939.0" y="365" text-anchor="middle" class="white" font-size="19">ဩ</text>
+<text x="939.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဪ</text>
+<rect x="979.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="987.0" y="338" fill="#9aa7b7" font-size="11">\</text>
+<text x="1012.0" y="365" text-anchor="middle" class="white" font-size="19">၏</text>
+<text x="1012.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၑ</text>
+<rect x="190.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="198.0" y="437" fill="#9aa7b7" font-size="11">a</text>
+<text x="223.0" y="464" text-anchor="middle" class="white" font-size="19">‌ေ</text>
+<text x="223.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဗ</text>
+<rect x="263.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="271.0" y="437" fill="#9aa7b7" font-size="11">s</text>
+<text x="296.0" y="464" text-anchor="middle" class="white" font-size="19">ျ</text>
+<text x="296.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ှ</text>
+<rect x="336.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="344.0" y="437" fill="#9aa7b7" font-size="11">d</text>
+<text x="369.0" y="464" text-anchor="middle" class="white" font-size="19">ိ</text>
+<text x="369.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ီ</text>
+<rect x="409.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="417.0" y="437" fill="#9aa7b7" font-size="11">f</text>
+<text x="442.0" y="464" text-anchor="middle" class="white" font-size="19">်</text>
+<text x="442.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ္</text>
+<rect x="482.0" y="420" width="66" height="82" rx="9" fill="#463a20" stroke="#f2bb56" stroke-width="2"/>
+<text x="490.0" y="437" fill="#9aa7b7" font-size="11">g</text>
+<text x="515.0" y="464" text-anchor="middle" class="white" font-size="19">ါ</text>
+<text x="515.0" y="489" text-anchor="middle" fill="#ffd681" font-size="14">⇧ ွ</text>
+<rect x="555.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="563.0" y="437" fill="#9aa7b7" font-size="11">h</text>
+<text x="588.0" y="464" text-anchor="middle" class="white" font-size="19">့</text>
+<text x="588.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ံ</text>
+<rect x="628.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="636.0" y="437" fill="#9aa7b7" font-size="11">j</text>
+<text x="661.0" y="464" text-anchor="middle" class="white" font-size="19">ြ</text>
+<text x="661.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဲ</text>
+<rect x="701.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="709.0" y="437" fill="#9aa7b7" font-size="11">k</text>
+<text x="734.0" y="464" text-anchor="middle" class="white" font-size="19">ု</text>
+<text x="734.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဒ</text>
+<rect x="774.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="782.0" y="437" fill="#9aa7b7" font-size="11">l</text>
+<text x="807.0" y="464" text-anchor="middle" class="white" font-size="19">ူ</text>
+<text x="807.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဓ</text>
+<rect x="847.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="855.0" y="437" fill="#9aa7b7" font-size="11">;</text>
+<text x="880.0" y="464" text-anchor="middle" class="white" font-size="19">း</text>
+<text x="880.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဂ</text>
+<rect x="920.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="928.0" y="437" fill="#9aa7b7" font-size="11">&#x27;</text>
+<text x="953.0" y="464" text-anchor="middle" class="white" font-size="19">&#x27;</text>
+<text x="953.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ &quot;</text>
+<rect x="240.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="248.5" y="536" fill="#9aa7b7" font-size="11">z</text>
+<text x="273.5" y="563" text-anchor="middle" class="white" font-size="19">ဖ</text>
+<text x="273.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဇ</text>
+<rect x="313.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="321.5" y="536" fill="#9aa7b7" font-size="11">x</text>
+<text x="346.5" y="563" text-anchor="middle" class="white" font-size="19">ထ</text>
+<text x="346.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဌ</text>
+<rect x="386.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="394.5" y="536" fill="#9aa7b7" font-size="11">c</text>
+<text x="419.5" y="563" text-anchor="middle" class="white" font-size="19">ခ</text>
+<text x="419.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဃ</text>
+<rect x="459.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="467.5" y="536" fill="#9aa7b7" font-size="11">v</text>
+<text x="492.5" y="563" text-anchor="middle" class="white" font-size="19">လ</text>
+<text x="492.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဠ</text>
+<rect x="532.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="540.5" y="536" fill="#9aa7b7" font-size="11">b</text>
+<text x="565.5" y="563" text-anchor="middle" class="white" font-size="19">ဘ</text>
+<text x="565.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ယ</text>
+<rect x="605.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="613.5" y="536" fill="#9aa7b7" font-size="11">n</text>
+<text x="638.5" y="563" text-anchor="middle" class="white" font-size="19">ည</text>
+<text x="638.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဉ</text>
+<rect x="678.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="686.5" y="536" fill="#9aa7b7" font-size="11">m</text>
+<text x="711.5" y="563" text-anchor="middle" class="white" font-size="19">ာ</text>
+<text x="711.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဦ</text>
+<rect x="751.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="759.5" y="536" fill="#9aa7b7" font-size="11">,</text>
+<text x="784.5" y="563" text-anchor="middle" class="white" font-size="19">,</text>
+<text x="784.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၊</text>
+<rect x="824.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="832.5" y="536" fill="#9aa7b7" font-size="11">.</text>
+<text x="857.5" y="563" text-anchor="middle" class="white" font-size="19">.</text>
+<text x="857.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ။</text>
+<rect x="897.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="905.5" y="536" fill="#9aa7b7" font-size="11">/</text>
+<text x="930.5" y="563" text-anchor="middle" class="white" font-size="19">/</text>
+<text x="930.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ?</text>
+<text x="64" y="658" fill="#f2bb56" font-size="15" font-weight="700">g → ါ (U+102B)     Shift+G → ွ (U+103D)</text>
+<rect x="1120" y="110" width="1040" height="590" rx="22" fill="#1c2430" stroke="#364352"/>
+<text x="1144" y="148" class="white" font-size="21" font-weight="700">RustMagic bundled .km2</text>
+<text x="1144" y="174" class="muted" font-size="13">82 total rules • 46 one-key mappings shown • 6,280 bytes • MD5 c593e2260ee87613335c1b09ef9823fe</text>
+<rect x="1205.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1213.5" y="239" fill="#9aa7b7" font-size="11">1</text>
+<text x="1238.5" y="266" text-anchor="middle" class="white" font-size="19">၁</text>
+<text x="1238.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဍ</text>
+<rect x="1278.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1286.5" y="239" fill="#9aa7b7" font-size="11">2</text>
+<text x="1311.5" y="266" text-anchor="middle" class="white" font-size="19">၂</text>
+<text x="1311.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၒ</text>
+<rect x="1351.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1359.5" y="239" fill="#9aa7b7" font-size="11">3</text>
+<text x="1384.5" y="266" text-anchor="middle" class="white" font-size="19">၃</text>
+<text x="1384.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဋ</text>
+<rect x="1424.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1432.5" y="239" fill="#9aa7b7" font-size="11">4</text>
+<text x="1457.5" y="266" text-anchor="middle" class="white" font-size="19">၄</text>
+<text x="1457.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၓ</text>
+<rect x="1497.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1505.5" y="239" fill="#9aa7b7" font-size="11">5</text>
+<text x="1530.5" y="266" text-anchor="middle" class="white" font-size="19">၅</text>
+<text x="1530.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၔ</text>
+<rect x="1570.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1578.5" y="239" fill="#9aa7b7" font-size="11">6</text>
+<text x="1603.5" y="266" text-anchor="middle" class="white" font-size="19">၆</text>
+<text x="1603.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၕ</text>
+<rect x="1643.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1651.5" y="239" fill="#9aa7b7" font-size="11">7</text>
+<text x="1676.5" y="266" text-anchor="middle" class="white" font-size="19">၇</text>
+<text x="1676.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ရ</text>
+<rect x="1716.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1724.5" y="239" fill="#9aa7b7" font-size="11">8</text>
+<text x="1749.5" y="266" text-anchor="middle" class="white" font-size="19">၈</text>
+<text x="1749.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ *</text>
+<rect x="1789.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1797.5" y="239" fill="#9aa7b7" font-size="11">9</text>
+<text x="1822.5" y="266" text-anchor="middle" class="white" font-size="19">၉</text>
+<text x="1822.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ (</text>
+<rect x="1862.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1870.5" y="239" fill="#9aa7b7" font-size="11">0</text>
+<text x="1895.5" y="266" text-anchor="middle" class="white" font-size="19">၀</text>
+<text x="1895.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ )</text>
+<rect x="1935.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1943.5" y="239" fill="#9aa7b7" font-size="11">-</text>
+<text x="1968.5" y="266" text-anchor="middle" class="white" font-size="19">-</text>
+<text x="1968.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ _</text>
+<rect x="2008.5" y="222" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="2016.5" y="239" fill="#9aa7b7" font-size="11">=</text>
+<text x="2041.5" y="266" text-anchor="middle" class="white" font-size="19">=</text>
+<text x="2041.5" y="291" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ +</text>
+<rect x="1183.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1191.0" y="338" fill="#9aa7b7" font-size="11">q</text>
+<text x="1216.0" y="365" text-anchor="middle" class="white" font-size="19">ဆ</text>
+<text x="1216.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဈ</text>
+<rect x="1256.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1264.0" y="338" fill="#9aa7b7" font-size="11">w</text>
+<text x="1289.0" y="365" text-anchor="middle" class="white" font-size="19">တ</text>
+<text x="1289.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဝ</text>
+<rect x="1329.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1337.0" y="338" fill="#9aa7b7" font-size="11">e</text>
+<text x="1362.0" y="365" text-anchor="middle" class="white" font-size="19">န</text>
+<text x="1362.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဣ</text>
+<rect x="1402.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1410.0" y="338" fill="#9aa7b7" font-size="11">r</text>
+<text x="1435.0" y="365" text-anchor="middle" class="white" font-size="19">မ</text>
+<text x="1435.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၎င်း</text>
+<rect x="1475.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1483.0" y="338" fill="#9aa7b7" font-size="11">t</text>
+<text x="1508.0" y="365" text-anchor="middle" class="white" font-size="19">အ</text>
+<text x="1508.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဤ</text>
+<rect x="1548.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1556.0" y="338" fill="#9aa7b7" font-size="11">y</text>
+<text x="1581.0" y="365" text-anchor="middle" class="white" font-size="19">ပ</text>
+<text x="1581.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၌</text>
+<rect x="1621.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1629.0" y="338" fill="#9aa7b7" font-size="11">u</text>
+<text x="1654.0" y="365" text-anchor="middle" class="white" font-size="19">က</text>
+<text x="1654.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဥ</text>
+<rect x="1694.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1702.0" y="338" fill="#9aa7b7" font-size="11">i</text>
+<text x="1727.0" y="365" text-anchor="middle" class="white" font-size="19">င</text>
+<text x="1727.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၍</text>
+<rect x="1767.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1775.0" y="338" fill="#9aa7b7" font-size="11">o</text>
+<text x="1800.0" y="365" text-anchor="middle" class="white" font-size="19">သ</text>
+<text x="1800.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဿ</text>
+<rect x="1840.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1848.0" y="338" fill="#9aa7b7" font-size="11">p</text>
+<text x="1873.0" y="365" text-anchor="middle" class="white" font-size="19">စ</text>
+<text x="1873.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဏ</text>
+<rect x="1913.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1921.0" y="338" fill="#9aa7b7" font-size="11">[</text>
+<text x="1946.0" y="365" text-anchor="middle" class="white" font-size="19">ဟ</text>
+<text x="1946.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဧ</text>
+<rect x="1986.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1994.0" y="338" fill="#9aa7b7" font-size="11">]</text>
+<text x="2019.0" y="365" text-anchor="middle" class="white" font-size="19">ဩ</text>
+<text x="2019.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဪ</text>
+<rect x="2059.0" y="321" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="2067.0" y="338" fill="#9aa7b7" font-size="11">\</text>
+<text x="2092.0" y="365" text-anchor="middle" class="white" font-size="19">၏</text>
+<text x="2092.0" y="390" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၑ</text>
+<rect x="1270.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1278.0" y="437" fill="#9aa7b7" font-size="11">a</text>
+<text x="1303.0" y="464" text-anchor="middle" class="white" font-size="19">‌ေ</text>
+<text x="1303.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဗ</text>
+<rect x="1343.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1351.0" y="437" fill="#9aa7b7" font-size="11">s</text>
+<text x="1376.0" y="464" text-anchor="middle" class="white" font-size="19">ျ</text>
+<text x="1376.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ှ</text>
+<rect x="1416.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1424.0" y="437" fill="#9aa7b7" font-size="11">d</text>
+<text x="1449.0" y="464" text-anchor="middle" class="white" font-size="19">ိ</text>
+<text x="1449.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ီ</text>
+<rect x="1489.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1497.0" y="437" fill="#9aa7b7" font-size="11">f</text>
+<text x="1522.0" y="464" text-anchor="middle" class="white" font-size="19">်</text>
+<text x="1522.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ္</text>
+<rect x="1562.0" y="420" width="66" height="82" rx="9" fill="#463a20" stroke="#f2bb56" stroke-width="2"/>
+<text x="1570.0" y="437" fill="#9aa7b7" font-size="11">g</text>
+<text x="1595.0" y="464" text-anchor="middle" class="white" font-size="19">ါ</text>
+<text x="1595.0" y="489" text-anchor="middle" fill="#ffd681" font-size="14">⇧ ွ</text>
+<rect x="1635.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1643.0" y="437" fill="#9aa7b7" font-size="11">h</text>
+<text x="1668.0" y="464" text-anchor="middle" class="white" font-size="19">့</text>
+<text x="1668.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ံ</text>
+<rect x="1708.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1716.0" y="437" fill="#9aa7b7" font-size="11">j</text>
+<text x="1741.0" y="464" text-anchor="middle" class="white" font-size="19">ြ</text>
+<text x="1741.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဲ</text>
+<rect x="1781.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1789.0" y="437" fill="#9aa7b7" font-size="11">k</text>
+<text x="1814.0" y="464" text-anchor="middle" class="white" font-size="19">ု</text>
+<text x="1814.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဒ</text>
+<rect x="1854.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1862.0" y="437" fill="#9aa7b7" font-size="11">l</text>
+<text x="1887.0" y="464" text-anchor="middle" class="white" font-size="19">ူ</text>
+<text x="1887.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဓ</text>
+<rect x="1927.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1935.0" y="437" fill="#9aa7b7" font-size="11">;</text>
+<text x="1960.0" y="464" text-anchor="middle" class="white" font-size="19">း</text>
+<text x="1960.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဂ</text>
+<rect x="2000.0" y="420" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="2008.0" y="437" fill="#9aa7b7" font-size="11">&#x27;</text>
+<text x="2033.0" y="464" text-anchor="middle" class="white" font-size="19">&#x27;</text>
+<text x="2033.0" y="489" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ &quot;</text>
+<rect x="1320.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1328.5" y="536" fill="#9aa7b7" font-size="11">z</text>
+<text x="1353.5" y="563" text-anchor="middle" class="white" font-size="19">ဖ</text>
+<text x="1353.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဇ</text>
+<rect x="1393.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1401.5" y="536" fill="#9aa7b7" font-size="11">x</text>
+<text x="1426.5" y="563" text-anchor="middle" class="white" font-size="19">ထ</text>
+<text x="1426.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဌ</text>
+<rect x="1466.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1474.5" y="536" fill="#9aa7b7" font-size="11">c</text>
+<text x="1499.5" y="563" text-anchor="middle" class="white" font-size="19">ခ</text>
+<text x="1499.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဃ</text>
+<rect x="1539.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1547.5" y="536" fill="#9aa7b7" font-size="11">v</text>
+<text x="1572.5" y="563" text-anchor="middle" class="white" font-size="19">လ</text>
+<text x="1572.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဠ</text>
+<rect x="1612.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1620.5" y="536" fill="#9aa7b7" font-size="11">b</text>
+<text x="1645.5" y="563" text-anchor="middle" class="white" font-size="19">ဘ</text>
+<text x="1645.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ယ</text>
+<rect x="1685.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1693.5" y="536" fill="#9aa7b7" font-size="11">n</text>
+<text x="1718.5" y="563" text-anchor="middle" class="white" font-size="19">ည</text>
+<text x="1718.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဉ</text>
+<rect x="1758.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1766.5" y="536" fill="#9aa7b7" font-size="11">m</text>
+<text x="1791.5" y="563" text-anchor="middle" class="white" font-size="19">ာ</text>
+<text x="1791.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ဦ</text>
+<rect x="1831.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1839.5" y="536" fill="#9aa7b7" font-size="11">,</text>
+<text x="1864.5" y="563" text-anchor="middle" class="white" font-size="19">,</text>
+<text x="1864.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ၊</text>
+<rect x="1904.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1912.5" y="536" fill="#9aa7b7" font-size="11">.</text>
+<text x="1937.5" y="563" text-anchor="middle" class="white" font-size="19">.</text>
+<text x="1937.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ။</text>
+<rect x="1977.5" y="519" width="66" height="82" rx="9" fill="#293442" stroke="#455365" stroke-width="1"/>
+<text x="1985.5" y="536" fill="#9aa7b7" font-size="11">/</text>
+<text x="2010.5" y="563" text-anchor="middle" class="white" font-size="19">/</text>
+<text x="2010.5" y="588" text-anchor="middle" fill="#c6d0dd" font-size="14">⇧ ?</text>
+<text x="1144" y="658" fill="#f2bb56" font-size="15" font-weight="700">g → ါ (U+102B)     Shift+G → ွ (U+103D)</text>
+<text x="44" y="745" class="muted" font-size="14">The files differ in size/rule count, but the displayed one-key layout maps match exactly. Contextual sequences can still differ.</text>
+</svg>
