@@ -11,6 +11,7 @@
 //! It is ignored by default because it asserts nothing: it is a map, and maps
 //! belong in the log.
 
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 use km_core::{KeyInput, Modifiers};
@@ -43,7 +44,7 @@ fn show(text: &str) -> String {
     let mut shown = String::new();
     for character in text.chars() {
         if FURNITURE.contains(&character) {
-            shown.push_str(&format!("<U+{:04X}>", character as u32));
+            let _ = write!(shown, "<U+{:04X}>", character as u32);
         } else {
             shown.push(character);
         }
@@ -78,8 +79,8 @@ fn what_the_bundled_keyboards_type() {
             let mut engine = engine(&path);
             engine.key(KeyInput::character(*key));
             let out = engine.context();
-            if !out.is_empty() && out.chars().any(|c| !c.is_ascii()) {
-                single.push_str(&format!("  {key:>2} -> {}\n", show(&out)));
+            if !out.is_empty() && !out.is_ascii() {
+                let _ = writeln!(single, "  {key:>2} -> {}", show(out));
             }
         }
         println!("-- one key:{single}");
@@ -94,7 +95,7 @@ fn what_the_bundled_keyboards_type() {
                 engine.key(KeyInput::character(*second));
                 let out = engine.context();
                 if out.chars().any(|c| FURNITURE.contains(&c)) {
-                    furniture.push(format!("  {first}{second} -> {}", show(&out)));
+                    furniture.push(format!("  {first}{second} -> {}", show(out)));
                 }
             }
         }
