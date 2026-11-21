@@ -88,9 +88,13 @@ fi
 %{_datadir}/icons/hicolor/scalable/apps/rustmagic.svg
 %{_datadir}/icons/hicolor/scalable/apps/rustmagic-ibus.svg
 %{_datadir}/rustmagic/keyboards/*.km2
-%license LICENSE OFL-NotoSansMyanmar.txt
-%doc README.md docs/LINUX.md
+# Named by path, not by bare file name: a bare `%license LICENSE` asks rpm for
+# %{_licensedir}/%{name}-%{version}/LICENSE, which is not where %install put it.
+%license %{_licensedir}/rustmagic/LICENSE
+%license %{_licensedir}/rustmagic/OFL-NotoSansMyanmar.txt
+%doc %{_docdir}/rustmagic/README.md
+%doc %{_docdir}/rustmagic/LINUX.md
 
 %changelog
-* Fri Nov 21 2026 RustMagic contributors <noreply@rustmagic.invalid> - 0.2.0
+* Sat Nov 21 2026 RustMagic contributors <noreply@rustmagic.invalid> - 0.2.0
 - First release with installers for every platform.

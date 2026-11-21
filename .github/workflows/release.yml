@@ -489,8 +489,14 @@ jobs:
             echo "::notice::no Authenticode certificate, so the installers ship unsigned"
             exit 0
           fi
-          signtool=$(ls "/c/Program Files (x86)/Windows Kits/10/bin/"*/x64/signtool.exe \
-                        "/c/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" 2>/dev/null | tail -1)
+          # Not `ls ... | tail -1`: the runner runs this shell with `pipefail`,
+          # and a path that does not exist makes ls exit 2, which ends the step
+          # before the message that explains why.
+          signtool=""
+          for candidate in "/c/Program Files (x86)/Windows Kits/10/bin/"*/x64/signtool.exe \
+                           "/c/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe"; do
+            if [ -x "$candidate" ]; then signtool="$candidate"; fi
+          done
           if [ -z "$signtool" ]; then
             echo "::error::signtool is not on this runner"
             exit 1
@@ -533,8 +539,13 @@ jobs:
         shell: bash
         run: |
           set -e
-          iscc=$(ls "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" \
-                    "/c/Program Files/Inno Setup 6/ISCC.exe" 2>/dev/null | head -1)
+          # Same reason as the signtool lookup: `ls` over two paths, one of them
+          # absent, exits 2 under `pipefail` and takes the step with it.
+          iscc=""
+          for candidate in "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" \
+                           "/c/Program Files/Inno Setup 6/ISCC.exe"; do
+            if [ -x "$candidate" ]; then iscc="$candidate"; break; fi
+          done
           if [ -z "$iscc" ]; then
             echo "::error::Inno Setup is not on this runner"
             exit 1
@@ -566,8 +577,14 @@ jobs:
             echo "::notice::no Authenticode certificate, so the installers ship unsigned"
             exit 0
           fi
-          signtool=$(ls "/c/Program Files (x86)/Windows Kits/10/bin/"*/x64/signtool.exe \
-                        "/c/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe" 2>/dev/null | tail -1)
+          # Not `ls ... | tail -1`: the runner runs this shell with `pipefail`,
+          # and a path that does not exist makes ls exit 2, which ends the step
+          # before the message that explains why.
+          signtool=""
+          for candidate in "/c/Program Files (x86)/Windows Kits/10/bin/"*/x64/signtool.exe \
+                           "/c/Program Files (x86)/Windows Kits/8.1/bin/x64/signtool.exe"; do
+            if [ -x "$candidate" ]; then signtool="$candidate"; fi
+          done
           printf '%s' "$CERTIFICATE" | base64 --decode > certificate.pfx
           for file in dist/*Setup*.exe dist/*.msi; do
             "$signtool" sign /fd sha256 /td sha256 /tr http://timestamp.digicert.com \
