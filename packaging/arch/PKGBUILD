@@ -63,7 +63,7 @@ package() {
     install -Dm644 crates/km-ffi/include/rustmagic.h \
         "$pkgdir/usr/include/rustmagic.h"
 
-    # The five keyboards every install starts with; the app also carries them
+    # The bundled keyboards every install starts with; the app also carries them
     # inside the binary, so these are for anyone who wants the files.
     install -d "$pkgdir/usr/share/$pkgname/keyboards"
     install -m644 keyboards/bundled/*.km2 \

@@ -19,7 +19,7 @@ bundle:
     build/macos/RustMagicIME.app/Contents/
         MacOS/RustMagicIME            the input method
         Frameworks/libkm_ffi.dylib    the engine
-        Resources/keyboards/*.km2     the five bundled layouts
+        Resources/keyboards/*.km2     the bundled layouts
         Resources/include/rustmagic.h the C ABI header
         Info.plist                    what makes macOS see an input method
 
@@ -88,7 +88,7 @@ Verifying
 
 The CI job "the keyboard speaks InputMethodKit" builds the bundle, checks that
 the Info.plist keys are present, that the signature verifies, that the
-executable refers to the engine by @rpath and not by a build path, that the five
+executable refers to the engine by @rpath and not by a build path, that the bundled
 keyboards are inside, then installs it into ~/Library/Input Methods and runs
 tools/smoke/tis.swift. That test asks Text Input Source Services — the API
 System Settings uses — whether the input method is listed, is in the keyboard

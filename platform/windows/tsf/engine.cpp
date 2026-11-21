@@ -174,7 +174,7 @@ std::wstring active_keyboard_path() {
     if (!first.empty()) {
         return first;
     }
-    /* Next to this DLL: the five layouts the installer ships, so a machine where
+    /* Next to this DLL: the bundled layouts the installer ships, so a machine where
      * nobody has opened the window yet still types something. */
     const std::wstring installed = first_keyboard_in(join(dll_directory(), L"keyboards"));
     if (!installed.empty()) {

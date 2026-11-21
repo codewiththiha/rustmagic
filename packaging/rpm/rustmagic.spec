@@ -32,7 +32,7 @@ ExclusiveArch:  x86_64
 
 %description
 RustMagic is a port of KeyMagic. It reads the same .km2 keyboards, compiles the
-same .kms sources and matches the same rules, and it ships five Myanmar layouts
+same .kms sources and matches the same rules, and it ships six Myanmar layouts
 so it types out of the box.
 
 It provides an IBus engine, so the layouts work in every application on a Linux

@@ -44,6 +44,12 @@ final class Engine {
             if FileManager.default.fileExists(atPath: candidate.path) {
                 return candidate
             }
+            if let resources = Bundle.main.resourceURL {
+                let bundled = resources.appendingPathComponent("keyboards/\(id).km2")
+                if FileManager.default.fileExists(atPath: bundled.path) {
+                    return bundled
+                }
+            }
         }
         if let first = firstKeyboard(in: keyboards) {
             return first
@@ -56,7 +62,7 @@ final class Engine {
     }
 
     /// Every keyboard this input method can offer: the ones the window manages,
-    /// then the ones inside the bundle. The bundle's five are always there, so a
+    /// then the ones inside the bundle. The bundled layouts are always there, so a
     /// fresh install has something to type with before the window ever runs.
     static func installedKeyboards() -> [(id: String, url: URL)] {
         var found: [(id: String, url: URL)] = []
@@ -74,7 +80,37 @@ final class Engine {
                 found.append((id, folder.appendingPathComponent(name)))
             }
         }
-        return found
+        return found.filter { isVisibleInInputMenu($0.id) }
+    }
+
+    /// Reads the GUI's input-menu visibility setting without adding a second
+    /// settings store inside the InputMethodKit process.
+    private static func isVisibleInInputMenu(_ id: String) -> Bool {
+        let settings = stateDirectory.appendingPathComponent("settings.toml")
+        guard let text = try? String(contentsOf: settings, encoding: .utf8) else {
+            return true
+        }
+        let mode = text.split(separator: "\n").first(where: {
+            String($0).trimmingCharacters(in: .whitespaces).hasPrefix("keyboard_menu_mode")
+        })?.split(separator: "=", maxSplits: 1).last.map {
+            String($0).trimmingCharacters(in: CharacterSet(charactersIn: " \""))
+        } ?? "all"
+        switch mode {
+        case "active":
+            return activeID(in: settings) == id
+        case "selected":
+            guard let line = text.split(separator: "\n").first(where: {
+                String($0).trimmingCharacters(in: .whitespaces).hasPrefix("keyboard_menu_ids")
+            }), let raw = line.split(separator: "=", maxSplits: 1).last else {
+                return false
+            }
+            let ids = raw.split(separator: ",").map {
+                String($0).trimmingCharacters(in: CharacterSet(charactersIn: " []\""))
+            }
+            return ids.contains(id)
+        default:
+            return true
+        }
     }
 
     /// Records the choice where the window will read it, so switching in the

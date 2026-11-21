@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use km_core::{Error, KeyInput, LayoutOptions, Modifiers};
 use km_engine::{Engine, Keyboard};
-use km_store::{Entry, Library, Settings, Theme};
+use km_store::{Entry, KeyboardMenuMode, Library, Settings, Theme};
 
 use crate::command::Command;
 use crate::event::{Event, ToastKind};
@@ -199,6 +199,25 @@ impl Session {
         &self.settings
     }
 
+    /// Reloads settings another process may have changed, such as the manager
+    /// window while the IBus service is running. Returns whether the active
+    /// keyboard changed.
+    pub fn reload_settings(&mut self) -> bool {
+        let (settings, _) = Settings::load(&self.settings_path);
+        let old_active = self.active.as_ref().map(|active| active.id.clone());
+        self.settings = settings;
+        let wanted = self
+            .settings
+            .active
+            .as_deref()
+            .filter(|id| self.entries.iter().any(|entry| entry.id.as_str() == *id))
+            .map(str::to_owned);
+        if let Some(id) = wanted.filter(|id| old_active.as_deref() != Some(id.as_str())) {
+            self.activate(&id);
+        }
+        self.active.as_ref().map(|active| active.id.clone()) != old_active
+    }
+
     /// The active keyboard's key caps, empty when no keyboard is active.
     pub fn layout(&self) -> &[KeyRow] {
         &self.layout
@@ -304,6 +323,14 @@ impl Session {
                 self.settings.animate = on;
                 self.persist();
             }
+            Command::SetKeyboardMenuMode { mode } => {
+                self.settings.keyboard_menu_mode = mode;
+                self.persist();
+            }
+            Command::SetKeyboardMenuIds { ids } => {
+                self.settings.keyboard_menu_ids = ids;
+                self.persist();
+            }
             Command::ShowRoute { route } => self.show(route),
             Command::SandboxType { text } => {
                 self.sandbox.type_text(&text);
@@ -392,6 +419,28 @@ impl Session {
                 },
             },
             "appearance.animate" => Command::SetAnimation { on: flag("on") },
+            "keyboard-menu.mode" => Command::SetKeyboardMenuMode {
+                mode: match get("mode").as_deref() {
+                    Some("active") => KeyboardMenuMode::Active,
+                    Some("all") => KeyboardMenuMode::All,
+                    Some("selected") => KeyboardMenuMode::Selected,
+                    Some(other) => {
+                        return Err(Error::InvalidKeyboard {
+                            detail: format!("`{other}` is not an input-menu mode"),
+                        });
+                    }
+                    None => return Err(missing("mode")),
+                },
+            },
+            "keyboard-menu.ids" => Command::SetKeyboardMenuIds {
+                ids: get("ids")
+                    .unwrap_or_default()
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|id| !id.is_empty())
+                    .map(str::to_owned)
+                    .collect(),
+            },
             "view.route" => Command::ShowRoute {
                 route: get("route")
                     .as_deref()

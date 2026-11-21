@@ -1,6 +1,6 @@
 //! The keyboards every install starts with.
 //!
-//! KeyMagic ships five Myanmar layouts; so does RustMagic. They are compiled
+//! RustMagic ships six Myanmar layouts, including Myanmar3. They are compiled
 //! `.km2` files embedded in the binary, which keeps one list working for a
 //! portable tarball, a `.deb`, a `.rpm`, a `.pkg.tar.zst`, an `.msi` and a
 //! `.dmg` — there is no install path to find at runtime, and no way for a
@@ -39,6 +39,10 @@ pub const BUNDLED: &[Bundled] = &[
     Bundled {
         id: "zawcode",
         bytes: include_bytes!("../../../keyboards/bundled/zawcode.km2"),
+    },
+    Bundled {
+        id: "myanmar3",
+        bytes: include_bytes!("../../../keyboards/bundled/myanmar3.km2"),
     },
 ];
 

@@ -73,7 +73,7 @@ Keyboards
 
 The service types with whichever keyboard is active in the RustMagic window,
 read from %APPDATA%\RustMagic\settings.toml. If that has never been written it
-uses the first .km2 next to the DLL (the installer puts the five bundled
+uses the first .km2 next to the DLL (the installer puts the bundled
 layouts in <install dir>\keyboards), then %ProgramData%\RustMagic\keyboards.
 Switching keyboards in the window takes effect on the next focus change or key:
 the engine is reloaded, so a different layout types immediately.

@@ -246,7 +246,7 @@ Priority: optional
 Homepage: https://github.com/codewiththiha/rustmagic
 Description: keyboard layout engine for Myanmar and other scripts, in Rust
  RustMagic is a port of KeyMagic. It reads the same .km2 keyboards, compiles
- the same .kms sources and matches the same rules, and it ships five Myanmar
+ the same .kms sources and matches the same rules, and it ships six Myanmar
  layouts so it types out of the box.
  .
  It also provides an IBus engine, so the layouts work in every application on

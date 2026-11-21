@@ -170,6 +170,26 @@ fn what_pyidaungsu_says_about_the_vowel_e() {
 }
 
 #[test]
+fn pyidaungsu_shift_g_types_medial_wa_in_the_engine() {
+    let keyboard = Keyboard::from_bytes(include_bytes!(
+        "../../../keyboards/bundled/pyidaungsu-mm.km2"
+    ))
+    .expect("the bundled Pyidaungsu keyboard decodes");
+    let mut engine = Engine::new(std::sync::Arc::new(keyboard));
+    engine.key(KeyInput::character('G'));
+    assert_eq!(engine.context(), "\u{103D}");
+}
+
+#[test]
+fn myanmar3_shift_g_types_medial_wa() {
+    let keyboard = Keyboard::from_bytes(include_bytes!("../../../keyboards/bundled/myanmar3.km2"))
+        .expect("the bundled Myanmar3 keyboard decodes");
+    let mut engine = Engine::new(std::sync::Arc::new(keyboard));
+    engine.key(KeyInput::character('G'));
+    assert_eq!(engine.context(), "\u{103D}");
+}
+
+#[test]
 fn pyidaungsu_vowel_first_types_aye_without_an_invisible_character() {
     let keyboard = Keyboard::from_bytes(include_bytes!(
         "../../../keyboards/bundled/pyidaungsu-mm.km2"

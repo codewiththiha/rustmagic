@@ -238,7 +238,7 @@ fn card(
             ui.set_min_height(CARD_HEIGHT - 36.0);
             ui.horizontal(|ui| {
                 let (rect, _) = ui.allocate_exact_size(Vec2::splat(34.0), egui::Sense::hover());
-                // The five bundled keyboards have a mark of their own, drawn from
+                // The original bundled keyboards have a mark of their own, drawn from
                 // what each of them is. Anything a user installed gets the plain
                 // keyboard glyph on the same plate, so the row still lines up.
                 let mark = Icon::for_keyboard(&entry.id).unwrap_or(Icon::Keyboard);

@@ -6,7 +6,7 @@
 # Produces build/macos/RustMagicIME.app, a bundle that can be dropped into
 # ~/Library/Input Methods and selected in System Settings > Keyboard > Input
 # Sources. It carries the Swift input method, the engine's C ABI library and the
-# five bundled keyboards, so it works with no other part of RustMagic installed.
+# bundled keyboards, so it works with no other part of RustMagic installed.
 #
 # Needs the Xcode command line tools (swiftc) and cargo. UNIVERSAL=1 builds both
 # architectures, which is what the release ships.

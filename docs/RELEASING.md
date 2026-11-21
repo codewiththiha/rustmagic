@@ -32,7 +32,7 @@ they are the smallest thing to inspect, but they are not the headline download.
 | `brand` | ubuntu-latest | the icon set as an artifact, not a release asset | `tools/package/check_icon.py` — the rasterised icon must have more than one colour in it |
 | `linux` | ubuntu-22.04 | `rustmagic_<v>_amd64.deb`, `rustmagic-<v>-linux-x86_64.tar.gz` (+ `.sha256`) | `cargo test`, then `tools/smoke/ibus.sh` over a real D-Bus session, then a `dpkg-deb -c` of the `.deb` |
 | `linux-cross` | ubuntu-latest, `cross` | `rustmagic_<v>_arm64.deb`, `rustmagic-<v>-linux-aarch64.tar.gz`, `…-x86_64-musl.tar.gz`, `…-aarch64-musl.tar.gz` | `cross build` for each target, and `cross test` under qemu for the GNU one |
-| `rpm` | ubuntu-latest in a `fedora:latest` container | `rustmagic-<v>-1.x86_64.rpm` | `rpmbuild` exits zero and `rpm -qlp` lists the binaries and the five keyboards |
+| `rpm` | ubuntu-latest in a `fedora:latest` container | `rustmagic-<v>-1.x86_64.rpm` | `rpmbuild` exits zero and `rpm -qlp` lists the binaries and the bundled keyboards |
 | `macos` | macos-latest | `RustMagic-<v>-universal.dmg` (+ `.sha256`), `rustmagic-<v>-macos-universal.zip` | `cargo test`, `lipo -archs` on each binary, then `hdiutil verify` on the disk image |
 | `windows` | windows-latest | `RustMagic-<v>-Setup-x64.exe`, `RustMagic-<v>-x64.msi`, `rustmagic-<v>-windows-x86_64.zip` (+ `.sha256`) | `cargo test`, then Inno Setup and WiX both compile the installers |
 | `crates` | ubuntu-latest | `km-core`, `km-binary`, `km-script`, `km-engine`, `km-ffi` on crates.io | `cargo test` for the five, then `tools/publish_crates.py` publishes them in dependency order and waits for each to appear in the index |
@@ -79,7 +79,7 @@ rustmagic-<v>-linux-x86_64/
   share/icons/hicolor/scalable/apps/rustmagic-ibus.svg
   lib/libkm_ffi.so         the C ABI, for other input-method frameworks
   include/rustmagic.h      its header
-  keyboards/*.km2          the five bundled layouts, for other tools to read
+  keyboards/*.km2          the bundled layouts, for other tools to read
   INSTALL
 ```
 

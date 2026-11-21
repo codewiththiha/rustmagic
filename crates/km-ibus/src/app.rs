@@ -13,6 +13,7 @@ use std::sync::Arc;
 use km_core::{KeyInput, Modifiers};
 use km_engine::{Engine, Keyboard};
 use km_session::{Command, Session};
+use km_store::KeyboardMenuMode;
 
 use crate::keymap::{self, modifiers};
 
@@ -99,15 +100,34 @@ impl EngineApp {
         }
     }
 
-    /// Interprets one key event.
-    pub fn process_key_event(&mut self, keysym: u32, _keycode: u32, state: u32) -> Output {
-        if state & modifiers::RELEASE != 0 {
+    /// Interprets one key event, picking up a layout/settings change made by
+    /// the RustMagic window without requiring an IBus restart.
+    pub fn process_key_event(&mut self, keysym: u32, keycode: u32, state: u32) -> Output {
+        if state & modifiers::RELEASE != 0 || keymap::is_pure_modifier(keysym) {
             return Output::default();
         }
-        if keymap::is_pure_modifier(keysym) {
-            return Output::default();
+        let pending = self
+            .engine
+            .as_ref()
+            .map(|engine| engine.context().to_owned());
+        let keyboard_changed = self.session.reload_settings();
+        if keyboard_changed {
+            self.reload_keyboard();
         }
+        let mut output = self.process_key_event_inner(keysym, keycode, state);
+        if keyboard_changed {
+            if let Some(previous) = pending.filter(|text| !text.is_empty()) {
+                output.commit = Some(match output.commit {
+                    Some(current) => previous + &current,
+                    None => previous,
+                });
+            }
+        }
+        output
+    }
 
+    /// Runs an event after external settings have been synchronized.
+    fn process_key_event_inner(&mut self, keysym: u32, _keycode: u32, state: u32) -> Output {
         let mapped = keymap::map(keysym);
         let held = Modifiers {
             shift: state & modifiers::SHIFT != 0,
@@ -198,6 +218,64 @@ impl EngineApp {
             .map(|entry| entry.id.clone())
     }
 
+    /// Picks up a keyboard switch made in the RustMagic window when the IBus
+    /// panel opens its menu, committing any composition from the old layout.
+    pub fn refresh_settings_for_panel(&mut self) -> Output {
+        let pending = self.composition();
+        if !self.session.reload_settings() {
+            return Output::default();
+        }
+        self.reload_keyboard();
+        Output {
+            commit: if pending.is_empty() {
+                None
+            } else {
+                Some(pending)
+            },
+            preedit: None,
+            consumed: false,
+        }
+    }
+
+    /// Selects one of the installed keyboards from the IBus panel menu.
+    pub fn select_keyboard(&mut self, id: &str) -> Output {
+        if !self.session.entries().iter().any(|entry| entry.id == id) {
+            return Output::default();
+        }
+        let commit = self.take_composition();
+        self.session
+            .execute(Command::SelectKeyboard { id: id.to_owned() });
+        self.reload_keyboard();
+        Output {
+            commit,
+            preedit: None,
+            consumed: true,
+        }
+    }
+
+    /// The installed keyboards and the current choice, for the IBus panel.
+    pub fn keyboard_choices(&self) -> (Vec<super::properties::Choice>, Option<String>) {
+        let active = self.session.active().map(|active| active.id.clone());
+        let settings = self.session.settings();
+        let choices = self
+            .session
+            .entries()
+            .iter()
+            .filter(|entry| match settings.keyboard_menu_mode {
+                KeyboardMenuMode::Active => active.as_deref() == Some(entry.id.as_str()),
+                KeyboardMenuMode::All => true,
+                KeyboardMenuMode::Selected => {
+                    settings.keyboard_menu_ids.iter().any(|id| id == &entry.id)
+                }
+            })
+            .map(|entry| super::properties::Choice {
+                id: entry.id.clone(),
+                name: entry.meta.name.clone(),
+            })
+            .collect();
+        (choices, active)
+    }
+
     /// The engine's name, as IBus knows it.
     pub fn name(&self) -> &str {
         &self.engine_name
@@ -208,6 +286,7 @@ impl EngineApp {
 mod tests {
     use super::*;
     use km_session::{HeadlessHost, Seed};
+    use km_store::KeyboardMenuMode;
 
     const DEMO: &str = concat!(
         env!("CARGO_MANIFEST_DIR"),
@@ -225,6 +304,28 @@ mod tests {
 
     fn press(app: &mut EngineApp, keysym: u32) -> Output {
         app.process_key_event(keysym, 0, 0)
+    }
+
+    #[test]
+    fn keyboard_menu_filters_the_installed_layouts() {
+        let root = std::env::temp_dir().join("rustmagic-ibus-keyboard-menu");
+        let _ = std::fs::remove_dir_all(&root);
+        let session = Session::open(Box::new(HeadlessHost::new(root)));
+        let mut app = EngineApp::new(session, "rustmagic").expect("an engine");
+        let (all, active) = app.keyboard_choices();
+        assert_eq!(all.len(), 6);
+        assert!(all.iter().any(|choice| choice.id == "myanmar3"));
+
+        app.session.execute(Command::SetKeyboardMenuMode {
+            mode: KeyboardMenuMode::Selected,
+        });
+        app.session.execute(Command::SetKeyboardMenuIds {
+            ids: vec!["myanmar3".into()],
+        });
+        let (selected, still_active) = app.keyboard_choices();
+        assert_eq!(selected.len(), 1);
+        assert_eq!(selected[0].id, "myanmar3");
+        assert_eq!(active, still_active);
     }
 
     #[test]

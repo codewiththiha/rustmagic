@@ -316,8 +316,8 @@ jobs:
             exit 1
           fi
           test -s "$app/Contents/Frameworks/libkm_ffi.dylib"
-          # The five bundled layouts travel with it, so a fresh install types.
-          test "$(ls "$app/Contents/Resources/keyboards"/*.km2 | wc -l)" -eq 5
+          # The bundled layouts travel with it, so a fresh install types.
+          test "$(ls "$app/Contents/Resources/keyboards"/*.km2 | wc -l)" -eq 6
       - name: macOS accepts it as an input method
         run: |
           set -eu

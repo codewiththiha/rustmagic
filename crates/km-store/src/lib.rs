@@ -12,7 +12,7 @@ mod settings;
 
 pub use bundled::{BUNDLED, Bundled};
 pub use library::{Entry, Library, safe_id};
-pub use settings::{Settings, Theme};
+pub use settings::{KeyboardMenuMode, Settings, Theme};
 
 /// File name of the settings file inside the state directory.
 pub const SETTINGS_FILE: &str = "settings.toml";

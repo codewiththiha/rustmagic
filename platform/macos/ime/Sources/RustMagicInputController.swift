@@ -259,7 +259,7 @@ final class RustMagicInputController: IMKInputController {
         return nil
     }
 
-    /// The five keyboards that ship, named the way they are named elsewhere, so
+    /// The bundled keyboards, named the way they are named elsewhere, so
     /// the menu does not read `pyidaungsu-mm` where the window reads
     /// "Pyidaungsu MM".
     private static func name(for id: String) -> String {
@@ -269,6 +269,7 @@ final class RustMagicInputController: IMKInputController {
         case "myansan": return "MyanSan"
         case "zawgyi": return "Zawgyi"
         case "zawcode": return "ZawCode"
+        case "myanmar3": return "Myanmar3"
         default: return id
         }
     }

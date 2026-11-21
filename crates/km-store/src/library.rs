@@ -316,7 +316,7 @@ mod tests {
         std::fs::write(keyboards.join("custom.km2"), custom).expect("custom file");
 
         let migrated = library.seed_bundled().expect("seed and migrate");
-        assert_eq!(migrated.len(), 5, "three missing plus two migrated");
+        assert_eq!(migrated.len(), 6, "four missing plus two migrated");
         for bundled in crate::BUNDLED {
             assert_eq!(
                 std::fs::read(keyboards.join(format!("{}.km2", bundled.id))).unwrap(),

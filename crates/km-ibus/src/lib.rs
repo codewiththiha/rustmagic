@@ -13,6 +13,7 @@
 
 mod app;
 mod keymap;
+mod properties;
 mod service;
 mod text;
 

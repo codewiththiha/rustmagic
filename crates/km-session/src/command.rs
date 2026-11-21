@@ -4,7 +4,7 @@
 //! screenshot tool all call [`crate::Session::execute`] with one of these.
 
 use km_core::Modifiers;
-use km_store::Theme;
+use km_store::{KeyboardMenuMode, Theme};
 
 use crate::Route;
 
@@ -37,6 +37,16 @@ pub enum Command {
     SetAnimation {
         /// Whether motion plays.
         on: bool,
+    },
+    /// Chooses which keyboard layouts appear in the system input menu.
+    SetKeyboardMenuMode {
+        /// Active only, all installed layouts, or a selected subset.
+        mode: KeyboardMenuMode,
+    },
+    /// Sets the selected subset of keyboard ids for the system input menu.
+    SetKeyboardMenuIds {
+        /// Library ids to show.
+        ids: Vec<String>,
     },
     /// Shows one view.
     ShowRoute {
@@ -121,6 +131,16 @@ pub static SPECS: &[CommandSpec] = &[
         params: &["on"],
     },
     CommandSpec {
+        id: "keyboard-menu.mode",
+        label: "Choose input menu keyboard visibility",
+        params: &["mode"],
+    },
+    CommandSpec {
+        id: "keyboard-menu.ids",
+        label: "Choose keyboards in the input menu",
+        params: &["ids"],
+    },
+    CommandSpec {
         id: "view.route",
         label: "Open a view",
         params: &["route"],
@@ -175,6 +195,8 @@ impl Command {
             Self::RevealLibrary => "library.reveal",
             Self::SetTheme { .. } => "appearance.theme",
             Self::SetAnimation { .. } => "appearance.animate",
+            Self::SetKeyboardMenuMode { .. } => "keyboard-menu.mode",
+            Self::SetKeyboardMenuIds { .. } => "keyboard-menu.ids",
             Self::ShowRoute { .. } => "view.route",
             Self::SandboxType { .. } => "sandbox.type",
             Self::SandboxKey { .. } => "sandbox.key",
@@ -207,6 +229,12 @@ mod tests {
             Command::RevealLibrary,
             Command::SetTheme { theme: Theme::Dark },
             Command::SetAnimation { on: true },
+            Command::SetKeyboardMenuMode {
+                mode: KeyboardMenuMode::Selected,
+            },
+            Command::SetKeyboardMenuIds {
+                ids: vec!["myanmar3".into()],
+            },
             Command::ShowRoute {
                 route: Route::TryIt,
             },

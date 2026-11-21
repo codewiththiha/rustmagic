@@ -405,6 +405,34 @@ mod tests {
     }
 
     #[test]
+    fn pyidaungsu_shift_g_through_the_ffi_returns_medial_wa() {
+        let path = CString::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../keyboards/bundled/pyidaungsu-mm.km2"
+        ))
+        .unwrap();
+        unsafe {
+            let keyboard = rm_keyboard_load(path.as_ptr(), ptr::null_mut());
+            assert!(!keyboard.is_null(), "the bundled keyboard did not load");
+            let engine = rm_engine_new(keyboard);
+            assert!(!engine.is_null());
+            let mut edit = rm_edit {
+                erase: 0,
+                insert: ptr::null_mut(),
+                consumed: 0,
+                recursion_limit: 0,
+            };
+            let consumed =
+                rm_engine_key(engine, 0x47, u32::from('G'), 1, 0, 0, 0, 0, &raw mut edit);
+            assert_eq!(consumed, 1, "the layout consumes Shift+G");
+            assert_eq!(CStr::from_ptr(edit.insert).to_str().unwrap(), "\u{103D}");
+            rm_string_free(edit.insert);
+            rm_engine_free(engine);
+            rm_keyboard_free(keyboard);
+        }
+    }
+
+    #[test]
     fn asking_what_a_key_would_do_does_nothing() {
         // The question a Windows text service asks about every key press before
         // it claims the key, so it has to cost nothing: same answer as the real

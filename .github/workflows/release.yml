@@ -471,7 +471,7 @@ jobs:
             km_ffi.dll          the engine's C ABI, for other input-method services
             rustmagic.h         its header
             RustMagicTSF.dll    the keyboard Windows itself uses (see below)
-            keyboards\          the five Myanmar layouts that ship with it
+            keyboards\          the six Myanmar layouts that ship with it
 
           Typing everywhere: RustMagicTSF.dll is a TSF text service. The
           installer registers it, so RustMagic appears under Settings ->
@@ -828,8 +828,8 @@ jobs:
           | ARM64, static | `rustmagic-<v>-linux-aarch64-musl.tar.gz` | the same |
           | anywhere | `.tar.gz` / `.zip` | unpack and run |
 
-          Every release carries five Myanmar keyboards — Pyidaungsu MM, my-Win
-          2.3.0, MyanSan, Zawgyi and ZawCode — embedded in the binaries, so a
+          Every release carries six Myanmar keyboards — Pyidaungsu MM, my-Win
+          2.3.0, MyanSan, Zawgyi, ZawCode and Myanmar3 — embedded in the binaries, so a
           fresh install types without downloading anything.
 
           Every installer also makes RustMagic the system input method, not just
@@ -838,7 +838,7 @@ jobs:
           language in Settings and types in every program; the macOS `.dmg`
           carries the InputMethodKit bundle in `Input Methods/`, so it appears in
           System Settings under Input Sources; the Linux packages install the
-          IBus component. The five bundled keyboards are the same in all three.
+          IBus component. The six bundled keyboards are the same in all three.
 
           Details, including how to cut the next one: `docs/RELEASING.md`.
           TXT

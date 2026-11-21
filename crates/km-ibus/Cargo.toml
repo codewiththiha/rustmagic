@@ -13,6 +13,7 @@ publish = false
 km-core = { workspace = true }
 km-engine = { workspace = true }
 km-session = { workspace = true }
+km-store = { workspace = true }
 zbus = { workspace = true }
 async-io = { workspace = true }
 

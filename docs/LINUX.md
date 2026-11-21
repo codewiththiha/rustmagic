@@ -66,9 +66,19 @@ rustmagic                      # install a keyboard once
 ibus restart                   # pick up the component
 ```
 
-and add **RustMagic** in your desktop's input-method settings (GNOME: Settings →
-Keyboard → Input Sources; KDE: System Settings → Input Devices → Virtual
-Keyboard → IBus).
+and add **RustMagic** as an IBus input method.
+
+On KDE Plasma Wayland, selecting RustMagic in an IBus list is not by itself
+sufficient: set System Settings → Input & Output → Keyboard → Virtual Keyboard
+to **IBus Wayland**, apply it, then add RustMagic in IBus input-method settings.
+RustMagic exposes one IBus engine with a **Keyboard** submenu for the layouts
+installed in its library; selecting one there also updates the active keyboard
+in the RustMagic app. Its Settings page can limit that menu to the active layout,
+all layouts, or a selected subset. KDE's IBus support has application-specific
+limits—test in LibreOffice Writer or another IBus-aware editor before diagnosing
+a layout bug; some KDE applications such as Konsole may not work with IBus
+engines. Keyman's KDE instructions document the same IBus Wayland setup and
+application caveat: <https://help.keyman.com/kb/101>.
 
 Dependencies are `ibus`, `glibc` and `gcc-libs`; the build needs `rust` and
 `cargo`. The window adds no toolkit of its own — it draws with egui over

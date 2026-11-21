@@ -1,7 +1,7 @@
 //! Settings: the handful of choices the app keeps, and where it keeps them.
 
 use km_session::{Command, Session};
-use km_store::Theme;
+use km_store::{KeyboardMenuMode, Theme};
 
 use crate::theme::Palette;
 use crate::widgets;
@@ -58,6 +58,62 @@ pub fn show(ui: &mut egui::Ui, session: &mut Session, palette: &Palette) -> bool
                 }
             },
         );
+    });
+
+    ui.add_space(12.0);
+
+    let selected_ids = session.settings().keyboard_menu_ids.clone();
+    widgets::card(palette).show(ui, |ui| {
+        ui.set_width(ui.available_width());
+        ui.label(
+            egui::RichText::new("Input menu")
+                .font(crate::theme::bold(13.5))
+                .strong()
+                .color(palette.text),
+        );
+        ui.add_space(10.0);
+        widgets::setting_row(
+            ui,
+            palette,
+            "Keyboards shown",
+            "Choose the active layout, every layout, or a subset in the system input menu.",
+            |ui| {
+                if let Some(mode) = widgets::segmented(
+                    ui,
+                    palette,
+                    session.settings().keyboard_menu_mode,
+                    &[
+                        (KeyboardMenuMode::Active, "Active"),
+                        (KeyboardMenuMode::All, "All"),
+                        (KeyboardMenuMode::Selected, "Choose"),
+                    ],
+                ) {
+                    session.execute(Command::SetKeyboardMenuMode { mode });
+                }
+            },
+        );
+        if session.settings().keyboard_menu_mode == KeyboardMenuMode::Selected {
+            widgets::separator(ui, palette);
+            let entries: Vec<(String, String)> = session
+                .entries()
+                .iter()
+                .map(|entry| (entry.id.clone(), entry.meta.name.clone()))
+                .collect();
+            for (id, name) in entries {
+                let checked = selected_ids.iter().any(|selected| selected == &id);
+                widgets::setting_row(ui, palette, &name, &id, |ui| {
+                    if widgets::toggle(ui, palette, checked).clicked() {
+                        let mut ids = selected_ids.clone();
+                        if checked {
+                            ids.retain(|selected| selected != &id);
+                        } else {
+                            ids.push(id.clone());
+                        }
+                        session.execute(Command::SetKeyboardMenuIds { ids });
+                    }
+                });
+            }
+        }
     });
 
     ui.add_space(12.0);

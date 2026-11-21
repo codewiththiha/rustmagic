@@ -123,10 +123,40 @@ impl EngineService {
     fn set_capabilities(&self, _capabilities: u32) {}
 
     /// A menu property was clicked; keyboard switches arrive this way.
-    fn property_activate(&self, _name: &str, _state: u32) {}
+    async fn property_activate(
+        &self,
+        name: &str,
+        _state: u32,
+        #[zbus(signal_context)] emitter: SignalEmitter<'_>,
+    ) {
+        let Some(id) = name.strip_prefix("keyboard.") else {
+            return;
+        };
+        let (output, properties) = self.with(|app| {
+            let output = app.select_keyboard(id);
+            let (choices, active) = app.keyboard_choices();
+            (
+                output,
+                crate::properties::keyboard_menu(&choices, active.as_deref()),
+            )
+        });
+        self.publish(&emitter, output).await;
+        let _ = Self::register_properties(&emitter, properties).await;
+    }
 
-    /// A property should be shown.
-    fn property_show(&self, _name: &str) {}
+    /// A property should be shown; refresh external input-menu preferences.
+    async fn property_show(&self, _name: &str, #[zbus(signal_context)] emitter: SignalEmitter<'_>) {
+        let (output, properties) = self.with(|app| {
+            let output = app.refresh_settings_for_panel();
+            let (choices, active) = app.keyboard_choices();
+            (
+                output,
+                crate::properties::keyboard_menu(&choices, active.as_deref()),
+            )
+        });
+        self.publish(&emitter, output).await;
+        let _ = Self::register_properties(&emitter, properties).await;
+    }
 
     /// A property should be hidden.
     fn property_hide(&self, _name: &str) {}
@@ -177,6 +207,11 @@ impl EngineService {
     async fn enable(&self, #[zbus(signal_context)] emitter: SignalEmitter<'_>) {
         let output = self.with(crate::app::EngineApp::reload_keyboard);
         self.publish(&emitter, output).await;
+        let properties = self.with(|app| {
+            let (choices, active) = app.keyboard_choices();
+            crate::properties::keyboard_menu(&choices, active.as_deref())
+        });
+        let _ = Self::register_properties(&emitter, properties).await;
     }
 
     /// The engine became inactive.
@@ -205,6 +240,13 @@ impl EngineService {
 
     /// Panel extension keys.
     fn panel_extension_register_keys(&self, _data: Value<'_>) {}
+
+    /// Registers the layout chooser with the IBus panel.
+    #[zbus(signal)]
+    async fn register_properties(
+        emitter: &SignalEmitter<'_>,
+        properties: Value<'_>,
+    ) -> zbus::Result<()>;
 
     /// Text to write at the caret.
     #[zbus(signal)]

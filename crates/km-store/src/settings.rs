@@ -41,6 +41,19 @@ impl Theme {
     }
 }
 
+/// Which keyboards appear in the operating-system input menu.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum KeyboardMenuMode {
+    /// Only the current keyboard.
+    Active,
+    /// Every keyboard in the library.
+    #[default]
+    All,
+    /// Only the ids listed in [`Settings::keyboard_menu_ids`].
+    Selected,
+}
+
 /// Everything the app remembers between runs.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -53,6 +66,10 @@ pub struct Settings {
     pub animate: bool,
     /// Last sandbox text, so the try-it view resumes where it was.
     pub sandbox: String,
+    /// Which installed keyboards the system input menu lists.
+    pub keyboard_menu_mode: KeyboardMenuMode,
+    /// Keyboard ids listed when `keyboard_menu_mode` is `Selected`.
+    pub keyboard_menu_ids: Vec<String>,
 }
 
 impl Settings {
@@ -104,12 +121,22 @@ mod tests {
             theme: Theme::Dark,
             animate: true,
             sandbox: "ka\u{1000}".into(),
+            keyboard_menu_mode: KeyboardMenuMode::Selected,
+            keyboard_menu_ids: vec!["myanmar3".into()],
         };
         settings.save(&path).expect("saves");
         let (loaded, error) = Settings::load(&path);
         assert!(error.is_none());
         assert_eq!(loaded, settings);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn settings_without_the_new_menu_keys_keep_the_all_layout_default() {
+        let settings: Settings =
+            toml::from_str("active = \"pyidaungsu-mm\"").expect("old settings remain readable");
+        assert_eq!(settings.keyboard_menu_mode, KeyboardMenuMode::All);
+        assert_eq!(settings.keyboard_menu_ids, Vec::<String>::new());
     }
 
     #[test]

@@ -29,7 +29,14 @@ fn a_fresh_install_has_the_keyboards_keymagic_ships() {
         .iter()
         .map(|entry| entry.id.as_str())
         .collect();
-    for expected in ["pyidaungsu-mm", "my-win", "myansan", "zawgyi", "zawcode"] {
+    for expected in [
+        "pyidaungsu-mm",
+        "my-win",
+        "myansan",
+        "zawgyi",
+        "zawcode",
+        "myanmar3",
+    ] {
         assert!(ids.contains(&expected), "{expected} is missing: {ids:?}");
     }
     assert!(session.active().is_some(), "one of them is active");

@@ -264,7 +264,7 @@ def check_release() -> list[str]:
 
 
 def check_bundled() -> list[str]:
-    """The keyboards on disk and the ones compiled in are the same five."""
+    """The bundled keyboard files on disk and compiled into the app match."""
     problems = []
     directory = ROOT / "keyboards" / "bundled"
     files = {path.name for path in directory.glob("*.km2")} if directory.exists() else set()

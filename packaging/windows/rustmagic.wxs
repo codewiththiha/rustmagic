@@ -95,6 +95,9 @@
       <Component Id="KbZawCode" Guid="*" Win64="yes">
         <File Id="FileZawCode" Source="dist\windows\keyboards\zawcode.km2" KeyPath="yes" />
       </Component>
+      <Component Id="KbMyanmar3" Guid="*" Win64="yes">
+        <File Id="FileMyanmar3" Source="dist\windows\keyboards\myanmar3.km2" KeyPath="yes" />
+      </Component>
     </DirectoryRef>
 
     <DirectoryRef Id="ApplicationProgramsFolder">
@@ -134,6 +137,7 @@
       <ComponentRef Id="KbMyanSan" />
       <ComponentRef Id="KbZawgyi" />
       <ComponentRef Id="KbZawCode" />
+      <ComponentRef Id="KbMyanmar3" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="DesktopShortcut" />
     </Feature>
