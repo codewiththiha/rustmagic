@@ -95,14 +95,16 @@ end;
 
 procedure RemoveFromPath();
 var
-  Existing, Cleaned: string;
-  App: string;
+  Existing, Cleaned, App: string;
 begin
   App := ExpandConstant('{app}');
   if not RegQueryStringValue(HKA, 'Environment', 'Path', Existing) then
     exit;
-  Cleaned := StringReplace(Existing, ';' + App, '', [rfReplaceAll, rfIgnoreCase]);
-  Cleaned := StringReplace(Cleaned, App + ';', '', [rfReplaceAll, rfIgnoreCase]);
+  // StringChangeEx, not StringReplace: the latter is Delphi's, and this script
+  // engine does not have it. This is the same edit in place.
+  Cleaned := Existing;
+  StringChangeEx(Cleaned, ';' + App, '', True);
+  StringChangeEx(Cleaned, App + ';', '', True);
   if Cleaned <> Existing then
     RegWriteExpandStringValue(HKA, 'Environment', 'Path', Cleaned);
 end;
