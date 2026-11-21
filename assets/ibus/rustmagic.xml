@@ -14,7 +14,7 @@
     <name>org.freedesktop.IBus.RustMagic</name>
     <description>RustMagic input method</description>
     <exec>/usr/bin/rustmagic-ibus --ibus</exec>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
     <author>RustMagic contributors</author>
     <license>GPL-2.0-or-later</license>
     <homepage>https://github.com/codewiththiha/rustmagic</homepage>
@@ -35,7 +35,7 @@
             <rank>50</rank>
             <symbol>⌨</symbol>
             <setup>/usr/bin/rustmagic</setup>
-            <version>0.2.0</version>
+            <version>0.2.1</version>
             <textdomain>rustmagic</textdomain>
         </engine>
     </engines>

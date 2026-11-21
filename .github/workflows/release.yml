@@ -806,6 +806,14 @@ jobs:
           cat <<'TXT' | sed 's/^          //' > "$notes"
           One engine, and an installer for every platform, built from the tag.
 
+          **0.2.1 fixes the Pyidaungsu MM layout and macOS input adapter.** The
+          release migrates only the exact broken 0.2.0 Pyidaungsu MM and MyanSan
+          files, keeps other user keyboard files, reads the keyboard library from
+          the manager's actual data directory, and applies Rust engine edits by
+          Unicode scalar rather than Swift grapheme cluster. CI checks `a`, `t`,
+          `;` in the engine and checks the scalar edit boundary. Typing in a real
+          macOS text field has not been observed in CI; test it after installing.
+
           | Platform | Download | Install with |
           | --- | --- | --- |
           | Windows | `RustMagic-<v>-Setup-x64.exe` | run it |
