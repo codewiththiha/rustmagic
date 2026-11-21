@@ -153,7 +153,8 @@ jobs:
               ./usr/share/ibus/component/rustmagic.xml \
               ./usr/share/rustmagic/keyboards/zawgyi.km2 \
               ./usr/include/rustmagic.h \
-              ./usr/lib/rustmagic/libkm_ffi.so
+              ./usr/lib/rustmagic/libkm_ffi.so \
+              ./usr/share/doc/rustmagic/OFL-NotoSansMyanmar.txt
           do
             echo "$contents" | grep -qx "$expected" \
               || { echo "::error::$expected is missing from the .deb"; exit 1; }

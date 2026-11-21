@@ -113,9 +113,13 @@ def fill_portable(tree: Path, binaries: Path, version: str) -> None:
     install(ROOT / "README.md", share / "doc/rustmagic/README.md", 0o644)
     install(ROOT / "docs/LINUX.md", share / "doc/rustmagic/LINUX.md", 0o644)
     install(ROOT / "LICENSE", share / "licenses/rustmagic/LICENSE", 0o644)
+    # The Myanmar face is linked into every binary, so its licence travels with
+    # the binary: the OFL asks for the text to be handed out, not just to exist.
+    install(ROOT / "assets/fonts/OFL.txt", share / "licenses/rustmagic/OFL-NotoSansMyanmar.txt", 0o644)
     install(ROOT / "README.md", tree / "README.md", 0o644)
     install(ROOT / "docs/LINUX.md", tree / "LINUX.md", 0o644)
     install(ROOT / "LICENSE", tree / "LICENSE", 0o644)
+    install(ROOT / "assets/fonts/OFL.txt", tree / "OFL-NotoSansMyanmar.txt", 0o644)
     (tree / "INSTALL").write_text(
         f"""RustMagic {version} on Linux
 
@@ -125,6 +129,8 @@ def fill_portable(tree: Path, binaries: Path, version: str) -> None:
   share/rustmagic/keyboards/   the keyboards that ship with it
   lib/libkm_ffi.so       the C ABI, for another input-method framework
   include/rustmagic.h    its header
+  LICENSE                the licence of this program
+  OFL-NotoSansMyanmar.txt  the licence of the font compiled into it
 
 To install for the current user:
 
@@ -150,11 +156,15 @@ def fill_debian(tree: Path, binaries: Path, version: str, maintainer: str) -> No
     fill_portable(tree, binaries, version)
     # A package keeps documentation in /usr/share/doc and nothing loose at the
     # top; the portable INSTALL text describes the tarball, not the package.
-    for loose in ("INSTALL", "README.md", "LINUX.md", "LICENSE"):
+    for loose in ("INSTALL", "README.md", "LINUX.md", "LICENSE", "OFL-NotoSansMyanmar.txt"):
         (tree / loose).unlink(missing_ok=True)
     documentation = tree / "share/doc/rustmagic"
     shutil.copyfile(ROOT / "LICENSE", documentation / "copyright")
+    shutil.copyfile(
+        ROOT / "assets/fonts/OFL.txt", documentation / "OFL-NotoSansMyanmar.txt"
+    )
     (tree / "share/licenses/rustmagic/LICENSE").unlink(missing_ok=True)
+    (tree / "share/licenses/rustmagic/OFL-NotoSansMyanmar.txt").unlink(missing_ok=True)
     (tree / "share/licenses/rustmagic").rmdir()
     (tree / "share/licenses").rmdir()
 

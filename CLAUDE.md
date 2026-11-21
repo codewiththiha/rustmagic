@@ -41,8 +41,11 @@ docs/             the documents listed under "Documentation"
 fixtures/         keyboard files every test may rely on
 assets/keyboards/ keyboards that ship with the app
 assets/ibus/      the IBus component file
-packaging/        Arch PKGBUILDs, desktop entry and icons, the macOS Info.plist,
-                  the app icons
+assets/icons/     the window's icon set: one 24 point SVG per icon, compiled in
+assets/fonts/     the embedded Noto Sans Myanmar face and its OFL licence; the
+                  only reason a Myanmar keyboard can draw its own name
+packaging/        Arch PKGBUILDs, desktop entry, the macOS Info.plist, the
+                  installers, and the one brand SVG every icon is made from
 tools/smoke/      the C clients: one drives the IBus engine over D-Bus, one links
                   the C ABI through the installed header
 .github/workflows/ci.yml on every push; release.yml on a v* tag

@@ -105,6 +105,21 @@ about the engine's behaviour: they are both calling the same session.
 `ui-egui` draws a `Session` and sends `Command`s. It owns the fleeting window
 state only (search text, open palette, toasts) and no engine knowledge.
 
+Two things in it are worth knowing before changing them. The icons are 24 point
+SVGs in `assets/icons/`, compiled in with `include_bytes!` and tinted with the
+palette through egui's SVG loader: nothing is drawn out of line segments and no
+bitmap is involved, so one file serves the muted, hovered and selected colours
+and the set stays sharp on any display. The Myanmar face is Noto Sans Myanmar,
+embedded under the OFL as a fallback, because the default egui fonts have no
+Myanmar coverage and a layout's own name would draw as boxes.
+
+The window is laid out to be dragged to any size: below 820 points the rail
+becomes icons only, below 560 the header keeps nothing but the name and the
+command key, the keyboard board shrinks its caps and then scrolls, and the
+composition surface grows into the window. `crates/ui-egui/tests/render.rs`
+draws every page at eleven sizes in both moods so that "it is only right at one
+size" fails a test instead of shipping.
+
 `km-ffi` is the same idea for languages that cannot call Rust: opaque handles,
 UTF-8 in and out, caller-owned strings, neutral answers for null pointers.
 

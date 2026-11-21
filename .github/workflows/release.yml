@@ -205,6 +205,8 @@ jobs:
           mkdir -p "$app/Resources/keyboards"
           install -m644 keyboards/bundled/*.km2 "$app/Resources/keyboards/"
           install -m644 README.md LICENSE "$out/"
+          install -m644 assets/fonts/OFL.txt "$out/OFL-NotoSansMyanmar.txt"
+          install -m644 assets/fonts/OFL.txt "$app/Resources/OFL-NotoSansMyanmar.txt"
           # The .icns comes from the one brand PNG, through Apple's own tools.
           iconset="$(mktemp -d)/RustMagic.iconset"
           mkdir -p "$iconset"
@@ -281,6 +283,9 @@ jobs:
           cp crates/km-ffi/include/rustmagic.h "$out/"
           cp keyboards/bundled/*.km2 "$out/keyboards/"
           cp README.md LICENSE "$out/"
+          # The Myanmar face is compiled into the binaries, so its licence is
+          # handed out with them.
+          cp assets/fonts/OFL.txt "$out/OFL-NotoSansMyanmar.txt"
           cp dist/brand/rustmagic.ico "$out/"
           cat <<'TXT' | sed 's/^          //' > "$out/INSTALL.txt"
           RustMagic on Windows
@@ -379,7 +384,10 @@ jobs:
           checksum=$(sha256sum "rustmagic-$version.tar.gz" | cut -d' ' -f1)
           sed -i "s|^source=.*|source=(\"rustmagic-\$pkgver.tar.gz\")|" PKGBUILD
           sed -i "s/^sha256sums=.*/sha256sums=('$checksum')/" PKGBUILD
-          su builder -s /bin/bash -c "cd /home/builder/build && makepkg --noconfirm --nocheck"
+          # No `--nocheck`: a user running `makepkg -si` runs `check()`, so the
+          # release runs it too. A package whose own test suite fails for
+          # everyone who builds it is not a package that installs.
+          su builder -s /bin/bash -c "cd /home/builder/build && makepkg --noconfirm"
           su builder -s /bin/bash -c "cd /home/builder/build && makepkg --printsrcinfo > .SRCINFO"
           # The download is the package, the two files that rebuild it, and the
           # source they name -- all with the names makepkg expects.
@@ -389,6 +397,16 @@ jobs:
           cp /home/builder/build/rustmagic.install /tmp/assets/rustmagic.install
           cp /home/builder/build/.SRCINFO "/tmp/assets/rustmagic-$version.SRCINFO"
           cp "/home/builder/build/rustmagic-$version.tar.gz" /tmp/assets/
+          # Then install it, the way the release notes tell an Arch user to.
+          # ibus is assumed installed rather than required: the container has no
+          # session to run it in, and the dependency is declared in the package.
+          pacman -U --noconfirm --assume-installed ibus \
+            "/home/builder/build/rustmagic-$version"-1-x86_64.pkg.tar.zst
+          test -x /usr/bin/rustmagic
+          test -f /usr/share/ibus/component/rustmagic.xml
+          test -x /usr/bin/rustmagic-cli
+          rustmagic-cli list | head
+          pacman -Q rustmagic
           ls -l /tmp/assets
       - uses: softprops/action-gh-release@v2
         with:

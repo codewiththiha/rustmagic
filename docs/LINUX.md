@@ -30,6 +30,25 @@ keyboard ──▶ desktop ──▶ IBus daemon ──▶ rustmagic-ibus ──
 
 ### Arch Linux
 
+From a release, into an empty directory, with nothing else to fetch:
+
+```sh
+version=0.2.0
+base=https://github.com/codewiththiha/rustmagic/releases/download/v$version
+curl -LO "$base/PKGBUILD"
+curl -LO "$base/rustmagic.install"
+curl -LO "$base/rustmagic-$version.tar.gz"
+makepkg -si
+```
+
+The three files keep the names `makepkg` looks for. If the release is downloaded
+through a browser, it may have saved them as `PKGBUILD.1` or `PKGBUILD.txt`;
+rename them back before running, or `makepkg` will answer `PKGBUILD does not
+exist`. The built package is also published, so `sudo pacman -U
+rustmagic-<version>-1-x86_64.pkg.tar.zst` skips the compile entirely.
+
+From a clone of the branch, `PKGBUILD-git` is the rolling one:
+
 ```sh
 git clone https://github.com/codewiththiha/rustmagic
 cd rustmagic/packaging/arch

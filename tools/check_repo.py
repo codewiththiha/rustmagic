@@ -352,12 +352,55 @@ def check_assets() -> list[str]:
     for name in ("PKGBUILD", "rustmagic.install"):
         if not (ROOT / "packaging" / "arch" / name).exists():
             problems.append(f"packaging/arch/{name} is missing")
+    problems.extend(check_icon_set())
     desktop = ROOT / "packaging" / "linux" / "rustmagic.desktop"
     if desktop.exists():
         text = desktop.read_text(encoding="utf-8")
         for required in ("[Desktop Entry]", "Exec=", "Icon=", "Categories="):
             if required not in text:
                 problems.append(f"packaging/linux/rustmagic.desktop has no {required}")
+    return problems
+
+
+def check_icon_set() -> list[str]:
+    """The icon set the window is built from.
+
+    `crates/ui-egui/src/icons.rs` names one file per `Icon` variant and embeds
+    it with `include_bytes!`, so a deleted file fails the build. What the build
+    cannot see is a file that is there but is not a tintable 24 point SVG, and
+    a bitmap creeping back into a set that is supposed to be vectors.
+    """
+    problems = []
+    directory = ROOT / "assets" / "icons"
+    if not directory.is_dir():
+        return ["assets/icons/ is missing; the window has no icons"]
+    bitmaps = [
+        path.relative_to(ROOT).as_posix()
+        for path in directory.iterdir()
+        if path.suffix.lower() in {".png", ".ico", ".jpg", ".jpeg", ".webp", ".bmp"}
+    ]
+    for name in bitmaps:
+        problems.append(f"{name}: the icon set is SVG only, not bitmaps")
+    for path in sorted(directory.glob("*.svg")):
+        text = path.read_text(encoding="utf-8")
+        name = path.relative_to(ROOT).as_posix()
+        if "<svg" not in text:
+            problems.append(f"{name}: is not an SVG document")
+        if 'viewBox="0 0 24 24"' not in text:
+            problems.append(f"{name}: is not drawn on the 24 point grid")
+        if "currentColor" not in text:
+            problems.append(f"{name}: cannot be tinted, it does not use currentColor")
+    source = ROOT / "crates" / "ui-egui" / "src" / "icons.rs"
+    if source.exists():
+        text = source.read_text(encoding="utf-8")
+        for referenced in set(__import__("re").findall(r'assets/icons/([a-z-]+\.svg)', text)):
+            if not (directory / referenced).exists():
+                problems.append(f"assets/icons/{referenced}: named by icons.rs but missing")
+    fonts = ROOT / "assets" / "fonts"
+    if not fonts.is_dir():
+        problems.append("assets/fonts/ is missing; Myanmar would draw as boxes")
+    elif not (fonts / "OFL.txt").exists():
+        problems.append("assets/fonts/OFL.txt is missing; the font cannot ship without it")
     return problems
 
 

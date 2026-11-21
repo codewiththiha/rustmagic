@@ -58,6 +58,7 @@ install -Dm644 packaging/linux/rustmagic-ibus.svg %{buildroot}%{_datadir}/icons/
 install -d %{buildroot}%{_datadir}/rustmagic/keyboards
 install -m644 keyboards/bundled/*.km2 %{buildroot}%{_datadir}/rustmagic/keyboards/
 install -Dm644 LICENSE %{buildroot}%{_licensedir}/rustmagic/LICENSE
+install -Dm644 assets/fonts/OFL.txt %{buildroot}%{_licensedir}/rustmagic/OFL-NotoSansMyanmar.txt
 install -Dm644 README.md %{buildroot}%{_docdir}/rustmagic/README.md
 install -Dm644 docs/LINUX.md %{buildroot}%{_docdir}/rustmagic/LINUX.md
 
@@ -87,7 +88,7 @@ fi
 %{_datadir}/icons/hicolor/scalable/apps/rustmagic.svg
 %{_datadir}/icons/hicolor/scalable/apps/rustmagic-ibus.svg
 %{_datadir}/rustmagic/keyboards/*.km2
-%license LICENSE
+%license LICENSE OFL-NotoSansMyanmar.txt
 %doc README.md docs/LINUX.md
 
 %changelog

@@ -73,15 +73,21 @@ $latin[*] => $lower[$1]              // position picked the letter
 
 ## Releases
 
-| Platform | Artifact | What works today |
-| --- | --- | --- |
-| Linux | `rustmagic-<v>-linux-x86_64.tar.gz` | window, CLI, C ABI, **IBus engine** |
-| Arch | `rustmagic-<v>-1-x86_64.pkg.tar.zst` | the same, installed by pacman |
-| macOS | `rustmagic-<v>-macos-universal.zip` | window, CLI, C ABI (universal, unsigned) |
-| Windows | `rustmagic-<v>-windows-x86_64.zip` | window, CLI, C ABI |
+Every platform has an installer, not a zip you have to unpack first:
 
-`git push origin v0.1.0` builds all four — one job per platform, the Arch one in
-a container — and publishes a single release once every artifact is present.
+| Platform | Artifact | Install with | What works today |
+| --- | --- | --- | --- |
+| Windows | `RustMagic-<v>-Setup-x64.exe`, `RustMagic-<v>-x64.msi` | run it, or `msiexec /i` | window, CLI, C ABI |
+| macOS | `RustMagic-<v>-universal.dmg` | open, drag to Applications | window, CLI, C ABI (unsigned) |
+| Debian, Ubuntu | `rustmagic_<v>_amd64.deb` | `sudo apt install ./…deb` | window, CLI, C ABI, **IBus engine** |
+| Fedora, RHEL | `rustmagic-<v>-1.x86_64.rpm` | `sudo dnf install ./…rpm` | the same |
+| Arch | `rustmagic-<v>-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./…zst` | the same |
+| Arch, from source | `PKGBUILD`, `rustmagic.install`, `rustmagic-<v>.tar.gz` | `makepkg -si` | the same, compiled here |
+| anywhere | `.tar.gz` / `.zip` | unpack and run | the same, no install step |
+
+`git push origin v0.2.0` builds all of them — one job per platform, the Arch one
+in a container, the icons once for every installer — and publishes a single
+release once every artifact is present.
 System-wide typing is IBus-only for now: the Windows TSF service and the macOS
 input method are the remaining pieces of platform parity, and
 [docs/RELEASING.md](docs/RELEASING.md) says so in the release itself.
