@@ -219,11 +219,7 @@ fn id_of(path: &Path) -> Result<String> {
     safe_id(stem)
 }
 
-/// Restricts an id to lowercase letters, digits and dashes.
-///
-/// Ids become file names, so anything that could escape the library directory or
-/// collide with another id is refused rather than rewritten silently.
-pub /// Exact layouts shipped in RustMagic 0.2.0; only these are eligible for
+/// Exact layouts shipped in RustMagic 0.2.0; only these are eligible for
 /// replacement by the authoritative KeyMagic files.
 fn legacy_snapshot(id: &str) -> Option<&'static [u8]> {
     match id {
@@ -233,7 +229,11 @@ fn legacy_snapshot(id: &str) -> Option<&'static [u8]> {
     }
 }
 
-fn safe_id(name: &str) -> Result<String> {
+/// Restricts an id to lowercase letters, digits and dashes.
+///
+/// Ids become file names, so anything that could escape the library directory or
+/// collide with another id is refused rather than rewritten silently.
+pub fn safe_id(name: &str) -> Result<String> {
     let id: String = name
         .trim()
         .chars()
