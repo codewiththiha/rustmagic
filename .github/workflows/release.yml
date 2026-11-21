@@ -771,6 +771,7 @@ jobs:
           REGISTRY: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           APPLE: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           WINDOWS: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          GPG: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
           # A draft release whose assets are missing a platform is worse than no
           # release, so the count is checked before anything becomes public.
@@ -818,20 +819,6 @@ jobs:
           2.3.0, MyanSan, Zawgyi and ZawCode — embedded in the binaries, so a
           fresh install types without downloading anything.
 
-          Every file has a `.sha256` next to it, a detached GPG signature
-          (`<file>.asc`), and there is a signed `SHA256SUMS`. Verify with:
-
-          ```
-          gpg --import rustmagic-signing-key.asc
-          gpg --verify SHA256SUMS.asc SHA256SUMS
-          sha256sum -c SHA256SUMS
-          ```
-
-          The Windows installers are Authenticode-signed and timestamped, and the
-          macOS app is signed with a Developer ID and notarised, whenever the
-          release carries the certificates for them. If a release does not, the
-          `.asc` files are still there and the notes say so.
-
           Every installer also makes RustMagic the system input method, not just
           an application: the Windows `.exe` and `.msi` register `RustMagicTSF.dll`
           as a Text Services Framework text service, so it appears under the
@@ -843,6 +830,43 @@ jobs:
           Details, including how to cut the next one: `docs/RELEASING.md`.
           TXT
           sed -i "s/<v>/${TAG#v}/g" "$notes"
+          # What the notes can say about signatures depends on what this run had.
+          # A certificate that is absent changes the sentence; a paragraph that
+          # always claims to be signed is the one thing these notes exist not to do.
+          {
+            echo
+            echo "**Signing and checksums.**"
+            echo
+            if [ -n "${GPG:-}" ]; then
+              echo "- Every file has a detached GPG signature (\`<file>.asc\`) beside it,"
+              echo "  and there is a signed \`SHA256SUMS\`. Verify with:"
+              echo
+              echo "  \`\`\`"
+              echo "  gpg --import rustmagic-signing-key.asc"
+              echo "  gpg --verify SHA256SUMS.asc SHA256SUMS"
+              echo "  sha256sum -c SHA256SUMS"
+              echo "  \`\`\`"
+            else
+              echo "- No file is GPG-signed and there is no \`SHA256SUMS\`: both need a"
+              echo "  \`GPG_PRIVATE_KEY\` secret, and this repository has none set. The"
+              echo "  Linux tarballs, the macOS disk image and archive, and the Windows"
+              echo "  archive each carry a \`.sha256\` beside them, which is what there is"
+              echo "  to check them against."
+            fi
+            if [ -n "${APPLE:-}" ]; then
+              echo "- The macOS app is signed with a Developer ID and notarised."
+            else
+              echo "- The macOS app is signed ad hoc only: no Developer ID certificate is"
+              echo "  configured, so a downloaded copy has to be let past Gatekeeper once"
+              echo "  (right-click then Open, or \`xattr -dr com.apple.quarantine\`)."
+            fi
+            if [ -n "${WINDOWS:-}" ]; then
+              echo "- The Windows installers are Authenticode-signed and timestamped."
+            else
+              echo "- The Windows installers are unsigned: no Authenticode certificate is"
+              echo "  configured, so SmartScreen will warn once on first run."
+            fi
+          } >> "$notes"
           # The gaps are the part of a release note that goes stale first, so they
           # are computed from what this run actually had: a secret that is absent
           # is a sentence, and a secret that is present is a different sentence.
@@ -858,19 +882,6 @@ jobs:
               echo "  \`km-engine\`, \`km-ffi\`) are **not** on crates.io: publishing needs a"
               echo "  \`CARGO_REGISTRY_TOKEN\` secret, and this repository has none set. The"
               echo "  crates build and pass their tests in this run all the same."
-            fi
-            if [ -n "${APPLE:-}" ]; then
-              echo "- The macOS app is signed with a Developer ID and notarised."
-            else
-              echo "- The macOS app is signed ad hoc only: no Developer ID certificate is"
-              echo "  configured, so a downloaded copy has to be let past Gatekeeper once"
-              echo "  (right-click then Open, or \`xattr -dr com.apple.quarantine\`)."
-            fi
-            if [ -n "${WINDOWS:-}" ]; then
-              echo "- The Windows installers are Authenticode-signed and timestamped."
-            else
-              echo "- The Windows installers are unsigned: no Authenticode certificate is"
-              echo "  configured, so SmartScreen will warn once on first run."
             fi
             echo "- The Windows text service and the macOS input method are registered by"
             echo "  their installers, and CI proves that much on a real Windows runner and"
