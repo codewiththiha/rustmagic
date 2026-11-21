@@ -133,7 +133,8 @@ fn side(words: &[u16]) -> String {
 #[ignore = "prints the rules for one vowel; run with --ignored --nocapture"]
 fn what_pyidaungsu_says_about_the_vowel_e() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../keyboards/bundled/pyidaungsu-mm.km2");
+        .join("../../keyboards/bundled")
+        .join("pyidaungsu-mm.km2");
     let bytes = std::fs::read(&path).expect("a bundled keyboard is readable");
     let raw = km_binary::read(&bytes).expect("a bundled keyboard decodes");
 
