@@ -212,9 +212,11 @@ jobs:
           mkdir -p dist
           curl -fsSL -o "dist/rustmagic-$version.tar.gz" \
             "https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/v$version.tar.gz"
-          # The spec builds from the source archive, so the .rpm is a real
-          # build of the tag and not a repack of somebody else's binary.
-          rpmbuild -bb packaging/rpm/rustmagic.spec \
+          # `--nodeps` because the spec's BuildRequires name the distribution's
+          # cargo and rust packages, and this runner's toolchain comes from
+          # rustup instead: rpmbuild would refuse a build it can do perfectly
+          # well. A `dnf builddep` from Fedora still reads those requirements.
+          rpmbuild -bb --nodeps packaging/rpm/rustmagic.spec \
             --define "version $version" \
             --define "_sourcedir $PWD/dist" \
             --define "_topdir $PWD/dist/rpmbuild"
@@ -500,6 +502,33 @@ jobs:
               /f certificate.pfx /p "$CERTIFICATE_PASSWORD" "$file"
           done
           rm -f certificate.pfx
+      - name: install the installer builders
+        # Neither Inno Setup nor WiX ships on every windows image, and which one
+        # is missing changes with the image rather than with this repository.
+        # Both are installed only if absent, and the later steps use absolute
+        # paths, because a PATH that choco edits does not reach this process.
+        shell: pwsh
+        run: |
+          $inno = @(
+            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $inno) {
+            Write-Host "Inno Setup is absent; installing it"
+            choco install innosetup --no-progress -y
+          } else {
+            Write-Host "Inno Setup is already here: $inno"
+          }
+          $wix = @(
+            "C:\Program Files (x86)\WiX Toolset v3.14\bin\candle.exe",
+            "C:\Program Files (x86)\WiX Toolset v3.11\bin\candle.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $wix) {
+            Write-Host "WiX Toolset is absent; installing it"
+            choco install wixtoolset --no-progress -y
+          } else {
+            Write-Host "WiX Toolset is already here: $wix"
+          }
       - name: installer (.exe)
         shell: bash
         run: |
