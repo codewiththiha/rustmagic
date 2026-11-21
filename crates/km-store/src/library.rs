@@ -145,16 +145,26 @@ impl Library {
         self.entry(&self.keyboards().join(format!("{id}.km2")))
     }
 
-    /// Installs any bundled keyboard the library does not have yet.
+    /// Installs missing bundled keyboards and replaces exact copies of the
+    /// broken 0.2.0 Pyidaungsu MM and MyanSan files.
     ///
-    /// Only missing files are written, so a keyboard the user has edited or
-    /// replaced is never overwritten by an upgrade. Returns what was installed.
+    /// Other existing files are left alone, including user-edited layouts: an
+    /// upgrade only replaces those two byte-for-byte snapshots known to have
+    /// shipped with the incorrect rules. Returns new and migrated entries.
     pub fn seed_bundled(&self) -> Result<Vec<Entry>> {
         let mut installed = Vec::new();
         for bundled in crate::BUNDLED {
             let path = self.keyboards().join(format!("{}.km2", bundled.id));
             if path.is_file() {
-                continue;
+                let Some(previous) = legacy_snapshot(bundled.id) else {
+                    continue;
+                };
+                let Ok(existing) = std::fs::read(&path) else {
+                    continue;
+                };
+                if existing != previous {
+                    continue;
+                }
             }
             installed.push(self.install_bytes(bundled.id, bundled.bytes)?);
         }
@@ -213,7 +223,17 @@ fn id_of(path: &Path) -> Result<String> {
 ///
 /// Ids become file names, so anything that could escape the library directory or
 /// collide with another id is refused rather than rewritten silently.
-pub fn safe_id(name: &str) -> Result<String> {
+pub /// Exact layouts shipped in RustMagic 0.2.0; only these are eligible for
+/// replacement by the authoritative KeyMagic files.
+fn legacy_snapshot(id: &str) -> Option<&'static [u8]> {
+    match id {
+        "pyidaungsu-mm" => Some(include_bytes!("migrations/pyidaungsu-mm-0.2.0.km2")),
+        "myansan" => Some(include_bytes!("migrations/myansan-0.2.0.km2")),
+        _ => None,
+    }
+}
+
+fn safe_id(name: &str) -> Result<String> {
     let id: String = name
         .trim()
         .chars()
@@ -274,6 +294,40 @@ mod tests {
         assert_eq!(library.list()[0].id, "minimal");
         assert!(library.install_bytes("Broken", b"not a keyboard").is_err());
         assert_eq!(library.list().len(), 1, "the broken file was not stored");
+        let _ = std::fs::remove_dir_all(library.root());
+    }
+
+    #[test]
+    fn bundled_seed_migrates_only_the_exact_broken_0_2_0_files() {
+        let library = temp_library("migrate-bundled");
+        let keyboards = library.keyboards();
+        std::fs::create_dir_all(&keyboards).expect("keyboard directory");
+        std::fs::write(
+            keyboards.join("pyidaungsu-mm.km2"),
+            include_bytes!("migrations/pyidaungsu-mm-0.2.0.km2"),
+        )
+        .expect("old Pyidaungsu snapshot");
+        std::fs::write(
+            keyboards.join("myansan.km2"),
+            include_bytes!("migrations/myansan-0.2.0.km2"),
+        )
+        .expect("old MyanSan snapshot");
+        let custom = b"a user's unrelated keyboard file";
+        std::fs::write(keyboards.join("custom.km2"), custom).expect("custom file");
+
+        let migrated = library.seed_bundled().expect("seed and migrate");
+        assert_eq!(migrated.len(), 5, "three missing plus two migrated");
+        for bundled in crate::BUNDLED {
+            assert_eq!(
+                std::fs::read(keyboards.join(format!("{}.km2", bundled.id))).unwrap(),
+                bundled.bytes
+            );
+        }
+        assert_eq!(
+            std::fs::read(keyboards.join("custom.km2")).unwrap(),
+            custom,
+            "a non-matching user file is never overwritten"
+        );
         let _ = std::fs::remove_dir_all(library.root());
     }
 

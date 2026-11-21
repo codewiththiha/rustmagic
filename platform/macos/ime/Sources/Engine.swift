@@ -37,7 +37,7 @@ final class Engine {
     /// else one shipped inside this bundle so a fresh install still types.
     static func activeKeyboardPath() -> URL? {
         let state = stateDirectory
-        let keyboards = state.appendingPathComponent("keyboards")
+        let keyboards = state.appendingPathComponent("library/keyboards")
 
         if let id = activeID(in: state.appendingPathComponent("settings.toml")) {
             let candidate = keyboards.appendingPathComponent("\(id).km2")
@@ -61,7 +61,7 @@ final class Engine {
     static func installedKeyboards() -> [(id: String, url: URL)] {
         var found: [(id: String, url: URL)] = []
         var seen = Set<String>()
-        var folders: [URL] = [stateDirectory.appendingPathComponent("keyboards")]
+        var folders: [URL] = [stateDirectory.appendingPathComponent("library/keyboards")]
         if let resources = Bundle.main.resourceURL {
             folders.append(resources.appendingPathComponent("keyboards"))
         }

@@ -181,14 +181,11 @@ final class RustMagicInputController: IMKInputController {
         dropLastCharacters(1)
     }
 
-    /// Removes `count` characters, counting a composed character (which can be
-    /// several UTF-16 units) as one.
+    /// The engine counts Unicode scalar values, not Swift grapheme clusters.
+    /// Myanmar vowel marks and joiners can be grouped into one `Character`, so
+    /// `String.removeLast()` would erase more than the edit asked for.
     private func dropLastCharacters(_ count: Int) {
-        guard count > 0 else { return }
-        for _ in 0..<count {
-            guard !composing.isEmpty else { return }
-            composing.removeLast()
-        }
+        composing = UnicodeScalarEditing.removingLast(count, from: composing)
     }
 
     // MARK: - The menu under the input menu

@@ -287,6 +287,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: build the input method
         run: sh platform/macos/ime/build.sh
+      - name: engine edits count Unicode scalars like Swift
+        run: |
+          set -eu
+          mkdir -p build
+          swiftc -swift-version 5 platform/macos/ime/Sources/UnicodeScalarEditing.swift \
+            tools/smoke/unicode_scalars.swift -o build/unicode-scalars
+          ./build/unicode-scalars
       - name: the bundle is a bundle
         run: |
           set -eu

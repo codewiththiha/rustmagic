@@ -37,8 +37,10 @@ the name a user sees is the one inside the file.
 They are embedded in the binary with `include_bytes!` by
 `crates/km-store/src/bundled.rs` and installed on first run, so the same five
 appear on every platform whether RustMagic came from a `.deb`, an `.msi`, a
-`.dmg`, a `pkg.tar.zst` or a portable tarball. Packages also put a copy in
-`share/rustmagic/keyboards/` for anyone who wants the files themselves.
+`.dmg`, a `pkg.tar.zst` or a portable tarball. The app upgrades only the exact
+Pyidaungsu MM and MyanSan files shipped by RustMagic 0.2.0; other existing files
+are kept, so a user's edited keyboard is not overwritten. Packages also put a
+copy in `share/rustmagic/keyboards/` for anyone who wants the files themselves.
 
 Adding or replacing one: put the `.km2` in this directory, update the table, and
 keep the file name a library id. `crates/km-store` has a test that every listed
