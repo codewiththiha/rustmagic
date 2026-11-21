@@ -598,14 +598,19 @@ jobs:
           done
           rm -f certificate.pfx
       - name: portable archive
-        shell: bash
+        # Compress-Archive, not `zip`: the image no longer has an Info-ZIP `zip`,
+        # and PowerShell's own is always there. The checksum file is written in
+        # the same shape sha256sum produces, so either platform's file verifies
+        # with the same command.
+        shell: pwsh
         run: |
-          cd dist
-          mv windows "rustmagic-${{ steps.version.outputs.version }}-windows-x86_64"
-          zip -qr "rustmagic-${{ steps.version.outputs.version }}-windows-x86_64.zip" \
-            "rustmagic-${{ steps.version.outputs.version }}-windows-x86_64"
-          sha256sum *.zip > "rustmagic-${{ steps.version.outputs.version }}-windows-x86_64.zip.sha256"
-          ls -l *.zip *.exe *.msi
+          $version = "${{ steps.version.outputs.version }}"
+          $name = "rustmagic-$version-windows-x86_64"
+          Rename-Item -Path dist/windows -NewName $name
+          Compress-Archive -Path (Join-Path dist $name) -DestinationPath (Join-Path dist "$name.zip") -CompressionLevel Optimal
+          $hash = (Get-FileHash (Join-Path dist "$name.zip") -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name.zip" | Out-File -Encoding ascii -NoNewline (Join-Path dist "$name.zip.sha256")
+          Get-ChildItem dist/*.zip, dist/*.exe, dist/*.msi | Sort-Object Name | Format-Table Name, Length
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
