@@ -562,10 +562,16 @@ jobs:
           if (-not $wix) {
             throw "WiX Toolset is not on this runner"
           }
+          # WixUtilExtension supplies WixQuietExec64, which is how the text service gets
+          # registered: a deferred action cannot read [INSTALLFOLDER] on its own, so the
+          # command line is built first and run elevated after the files are down.
           & "$wix\candle.exe" -nologo -dVersion="${{ steps.version.outputs.version }}" `
+            -ext WixUtilExtension `
             -out dist\rustmagic.wixobj packaging\windows\rustmagic.wxs
-          & "$wix\light.exe" -nologo -ext WixUIExtension `
+          if ($LASTEXITCODE -ne 0) { throw "candle.exe did not compile the package" }
+          & "$wix\light.exe" -nologo -ext WixUIExtension -ext WixUtilExtension `
             -out "dist\RustMagic-${{ steps.version.outputs.version }}-x64.msi" dist\rustmagic.wixobj
+          if ($LASTEXITCODE -ne 0) { throw "light.exe did not link the package" }
       - name: sign the installers
         shell: bash
         env:

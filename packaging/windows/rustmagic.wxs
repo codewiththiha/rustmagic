@@ -114,20 +114,31 @@
          language profile and the keyboard category together, via the same TSF
          APIs the Inno build calls through regsvr32. Deferred and elevated,
          because the registration lands in HKLM. -->
+    <!-- The command line is built while the installer is still immediate, because
+         a deferred action cannot read [INSTALLFOLDER] for itself; WixQuietExec64
+         then runs that line elevated, which regsvr32 needs to write to HKLM. -->
+    <CustomAction Id="SetRegisterTextService"
+                  Property="WixQuietExec64CmdLine"
+                  Value="&quot;[SystemFolder]regsvr32.exe&quot; /s &quot;[INSTALLFOLDER]RustMagicTSF.dll&quot;"
+                  Execute="immediate" />
     <CustomAction Id="RegisterTextService"
-                  Directory="SystemFolder"
-                  Exe="regsvr32.exe"
-                  ExeCommand="/s &quot;[INSTALLFOLDER]RustMagicTSF.dll&quot;"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
                   Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="SetUnregisterTextService"
+                  Property="WixQuietExec64CmdLine"
+                  Value="&quot;[SystemFolder]regsvr32.exe&quot; /u /s &quot;[INSTALLFOLDER]RustMagicTSF.dll&quot;"
+                  Execute="immediate" />
     <CustomAction Id="UnregisterTextService"
-                  Directory="SystemFolder"
-                  Exe="regsvr32.exe"
-                  ExeCommand="/u /s &quot;[INSTALLFOLDER]RustMagicTSF.dll&quot;"
+                  BinaryKey="WixCA"
+                  DllEntry="WixQuietExec64"
                   Execute="deferred" Impersonate="no" Return="ignore" />
 
     <InstallExecuteSequence>
-      <Custom Action="RegisterTextService" After="InstallFiles">NOT REMOVE</Custom>
-      <Custom Action="UnregisterTextService" Before="RemoveFiles">REMOVE~="ALL"</Custom>
+      <Custom Action="SetRegisterTextService" After="InstallFiles">NOT REMOVE</Custom>
+      <Custom Action="RegisterTextService" After="SetRegisterTextService">NOT REMOVE</Custom>
+      <Custom Action="SetUnregisterTextService" Before="RemoveFiles">REMOVE~="ALL"</Custom>
+      <Custom Action="UnregisterTextService" After="SetUnregisterTextService">REMOVE~="ALL"</Custom>
     </InstallExecuteSequence>
 
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
