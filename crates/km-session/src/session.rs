@@ -310,10 +310,22 @@ impl Session {
                 self.after_sandbox_key();
             }
             Command::SandboxKey { key, modifiers } => {
+                // A virtual-key code names a key, not a character: 0x41 is the
+                // A key, which types `a` unless shift or caps is down. Deriving
+                // the character from the code alone would type `A` for a bare
+                // key press, which is not what a keyboard does.
+                let typed = char::from_u32(u32::from(key))
+                    .filter(|char| !char.is_control() && u32::from(*char) >= 0x20);
+                let text = typed.map(|char| {
+                    if modifiers.shift || modifiers.caps {
+                        char
+                    } else {
+                        char.to_ascii_lowercase()
+                    }
+                });
                 self.sandbox.key(KeyInput {
                     key,
-                    text: char::from_u32(u32::from(key))
-                        .filter(|char| !char.is_control() && u32::from(*char) >= 0x20),
+                    text,
                     modifiers,
                 });
                 self.after_sandbox_key();
