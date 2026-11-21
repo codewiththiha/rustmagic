@@ -19,7 +19,20 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$root"
 
 cc=${MINGW_CXX:-x86_64-w64-mingw32-g++}
-wine=${WINE:-$(command -v wine64 || command -v wine || echo /usr/lib/wine/wine64)}
+# WineHQ installs into /opt/wine-stable/bin, which is not always on PATH; the
+# distribution packages land in /usr/bin or /usr/lib/wine. Any of them will do.
+if [ -z "${WINE:-}" ]; then
+    for candidate in wine64 wine /opt/wine-stable/bin/wine64 /opt/wine-stable/bin/wine \
+                     /usr/lib/wine/wine64 /usr/lib/x86_64-linux-gnu/wine/wine64; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            wine=$candidate
+            break
+        fi
+    done
+    wine=${wine:-/usr/lib/wine/wine64}
+else
+    wine=$WINE
+fi
 if [ ! -x "$wine" ] && ! command -v "$wine" >/dev/null 2>&1; then
     echo "tsf-com.sh needs Wine: WINEDEBUG=-all wine64 <exe>" >&2
     echo "install it with: apt-get install -y wine64" >&2

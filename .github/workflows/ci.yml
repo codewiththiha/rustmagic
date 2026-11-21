@@ -254,7 +254,20 @@ jobs:
         # does not need a Windows machine.
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends mingw-w64 wine64
+          sudo apt-get install -y --no-install-recommends mingw-w64
+          # Ubuntu 22.04 ships Wine 6.0, which has no bcryptprimitives.dll, and
+          # Rust's runtime imports it for the seed of its hasher — so on that
+          # Wine the DLL cannot be loaded at all, by us or by anything else built
+          # with a current rustc. WineHQ's stable release can load it.
+          sudo dpkg --add-architecture i386
+          sudo mkdir -pm755 /etc/apt/keyrings
+          curl -fsSL https://dl.winehq.org/wine-builds/winehq.key |
+            sudo gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key
+          sudo curl -fsSL -o /etc/apt/sources.list.d/winehq-jammy.sources \
+            https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends winehq-stable
+          wine --version
       - name: the COM surface and the registration
         run: sh tools/smoke/tsf-com.sh
 

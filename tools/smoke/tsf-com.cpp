@@ -243,6 +243,13 @@ int main(int argc, char **argv) {
     check("COM initialises", SUCCEEDED(com));
 
     HMODULE dll = LoadLibraryA(path);
+    // The error code names what is missing, which a bare failure does not.
+    if (dll == nullptr) {
+        char why[256] = {};
+        FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr,
+                       GetLastError(), 0, why, sizeof why - 1, nullptr);
+        std::printf("      LoadLibrary says: %s", why);
+    }
     check("the DLL loads", dll != nullptr);
     if (dll == nullptr) {
         return 1;

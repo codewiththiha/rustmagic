@@ -43,6 +43,7 @@ func findRustMagic() -> TISInputSource? {
     return nil
 }
 
+
 var failures = 0
 func pass(_ what: String) { print("PASS  \(what)") }
 func fail(_ what: String) {
@@ -77,17 +78,29 @@ if let identifier = text(rustmagic, kTISPropertyInputSourceID) {
     print("      input source id: \(identifier)")
 }
 let keyboardCategory: String = kTISCategoryKeyboardInputSource as String
-let inputMethodType: String = kTISTypeKeyboardInputMethodModeEnabled as String
+// A bundle without ComponentInputModeDict is listed as an input method without
+// modes; one that declares modes is listed as mode-enabled. Both are keyboard
+// input methods, and RustMagic is deliberately the first kind, so either type is
+// accepted and the one reported is printed.
+let inputMethodTypes: Set<String> = [
+    kTISTypeKeyboardInputMethodWithoutModes as String,
+    kTISTypeKeyboardInputMethodModeEnabled as String,
+]
 
 if text(rustmagic, kTISPropertyInputSourceCategory) == keyboardCategory {
     pass("it is in the keyboard input source category")
 } else {
     fail("it is in the keyboard input source category")
 }
-if text(rustmagic, kTISPropertyInputSourceType) == inputMethodType {
-    pass("it is a keyboard input method")
+if let reported = text(rustmagic, kTISPropertyInputSourceType) {
+    print("      input source type: \(reported)")
+    if inputMethodTypes.contains(reported) {
+        pass("it is a keyboard input method")
+    } else {
+        fail("it is a keyboard input method")
+    }
 } else {
-    fail("it is a keyboard input method")
+    fail("it is a keyboard input method (it reports no type)")
 }
 if let languages = TISGetInputSourceProperty(rustmagic, kTISPropertyInputSourceLanguages) {
     let list = Unmanaged<CFArray>.fromOpaque(languages).takeUnretainedValue() as? [String] ?? []
@@ -115,19 +128,25 @@ if enabled == noErr {
 } else {
     fail("it can be enabled (OSStatus \(enabled))")
 }
-if flag(rustmagic, kTISPropertyInputSourceIsEnabled) {
+if let reEnabled = findRustMagic(), flag(reEnabled, kTISPropertyInputSourceIsEnabled) {
     pass("it is enabled")
 } else {
     fail("it is enabled")
 }
 
-let selected = TISSelectInputSource(rustmagic)
+// A TISInputSourceRef is a snapshot: enabling the source changed what the system
+// thinks, not what this object answers, so the next call is made on a fresh copy.
+let selectable = findRustMagic() ?? rustmagic
+let selected = TISSelectInputSource(selectable)
 if selected == noErr {
     pass("it can be selected")
 } else {
     fail("it can be selected (OSStatus \(selected))")
 }
-if flag(rustmagic, kTISPropertyInputSourceIsSelected) {
+// Text Input Source Services activates a keyboard input method by making one of
+// its sources the current one; that is the same state System Settings shows as
+// the highlighted input source.
+if let chosen = findRustMagic(), flag(chosen, kTISPropertyInputSourceIsSelected) {
     pass("it is the selected input source")
 } else {
     fail("it is the selected input source")
